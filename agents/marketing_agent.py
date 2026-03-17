@@ -143,6 +143,7 @@ class MarketingAgent(BaseAgent):
                 campaign["image_base64"] = None
         else:
             campaign["image_base64"] = None
+        print(f"[CAMPAIGN] image_base64 length: {len(campaign.get('image_base64', '') or '')}")
         queue.append(campaign)
         queue_file.write_text(
             json.dumps(queue, ensure_ascii=False, indent=2),
