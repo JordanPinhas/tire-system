@@ -1,0 +1,29 @@
+[
+  {
+    "timestamp": "2026-03-13T19:53:33",
+    "items_added": 9,
+    "items_updated": 0,
+    "items_skipped": 0,
+    "total_new": 9,
+    "source": "pdf",
+    "filename": "26HB078-RT001 INV LL .pdf"
+  },
+  {
+    "timestamp": "2026-03-13T19:59:42",
+    "items_added": 9,
+    "items_updated": 0,
+    "items_skipped": 0,
+    "total_new": 9,
+    "source": "pdf",
+    "filename": "26HB078-RT001 INV LL .pdf"
+  },
+  {
+    "timestamp": "2026-03-14T20:52:41",
+    "items_added": 11,
+    "items_updated": 0,
+    "items_skipped": 0,
+    "total_new": 11,
+    "source": "ai",
+    "filename": "26HB078-RT001 INV LL .pdf"
+  }
+]

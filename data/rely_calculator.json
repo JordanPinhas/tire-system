@@ -1,0 +1,35 @@
+{
+  "barrel_info": {
+    "barrel_size_liters": 1000,
+    "components": ["A", "B"],
+    "mix_ratio": "1:1",
+    "set_total_liters": 2000,
+    "note": "חבית A (איזוציאנט) + חבית B (פוליאול) = סט מלא של 2000 ליטר"
+  },
+  "tire_fills": [
+    {"size": "4.00-8",    "liters": 3.5,  "kg": 4.0},
+    {"size": "4.00-12",   "liters": 5.5,  "kg": 6.3},
+    {"size": "5.00-8",    "liters": 6.0,  "kg": 6.9},
+    {"size": "6.00-9",    "liters": 9.0,  "kg": 10.4},
+    {"size": "6.50-10",   "liters": 11.0, "kg": 12.7},
+    {"size": "7.00-12",   "liters": 14.0, "kg": 16.1},
+    {"size": "7.50-15",   "liters": 17.5, "kg": 20.1},
+    {"size": "8.25-15",   "liters": 22.0, "kg": 25.3},
+    {"size": "27x10-12",  "liters": 12.0, "kg": 13.8},
+    {"size": "28x9-15",   "liters": 14.0, "kg": 16.1},
+    {"size": "300-15",    "liters": 18.0, "kg": 20.7},
+    {"size": "355/65-15", "liters": 25.0, "kg": 28.8}
+  ],
+  "products": {
+    "T-25": {
+      "name": "Rely T-25 Standard",
+      "price_per_liter": 0,
+      "density": 1.15
+    },
+    "T-25-OEM": {
+      "name": "Rely T-25 OEM Recycled",
+      "price_per_liter": 0,
+      "density": 1.15
+    }
+  }
+}

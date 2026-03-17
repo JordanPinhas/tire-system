@@ -1,0 +1,179 @@
+[
+  {
+    "id": "C001",
+    "name": "מוסך אבי מוטורס",
+    "phone": "03-6667788",
+    "address": "רחוב הרצל 14, תל אביב",
+    "email": "avi@avimotors.co.il",
+    "contact_person": "אבי כהן",
+    "business_id": "514123456",
+    "customer_type": "מוסך",
+    "discount_pct": 12,
+    "payment_terms": "שוטף 30",
+    "special_price_list": "מוסכים-A",
+    "vehicles": [],
+    "notes": "לקוח ותיק מ-2019. מזמין כ-20 צמיגים בחודש.",
+    "status": "פעיל",
+    "created_date": "2023-05-10",
+    "last_purchase": "2026-03-08"
+  },
+  {
+    "id": "C002",
+    "name": "חברת משלוחים מהיר בע\"מ",
+    "phone": "072-5554433",
+    "address": "אזור תעשייה לוד, בניין 7",
+    "email": "fleet@mahir.co.il",
+    "contact_person": "רון אברהם",
+    "business_id": "512987654",
+    "customer_type": "ציי",
+    "discount_pct": 18,
+    "payment_terms": "שוטף 45",
+    "special_price_list": "ציי-פרימיום",
+    "vehicles": [
+      {
+        "plate": "55-222-88",
+        "tire_size": "195/65R15"
+      },
+      {
+        "plate": "12-345-67",
+        "tire_size": "195/65R15"
+      }
+    ],
+    "notes": "חוזה שנתי. 100 יח' בשנה.",
+    "status": "פעיל",
+    "created_date": "2024-01-15",
+    "last_purchase": "2026-02-20"
+  },
+  {
+    "id": "C003",
+    "name": "צמיגי השרון בע\"מ",
+    "phone": "09-7654321",
+    "address": "נתניה, רחוב הסדנה 3",
+    "email": "sharon@tiressharon.com",
+    "contact_person": "שרה לוי",
+    "business_id": "513456789",
+    "customer_type": "קמעונאי",
+    "discount_pct": 15,
+    "payment_terms": "שוטף 60",
+    "special_price_list": "קמעונאי-B",
+    "vehicles": [],
+    "notes": "מזמינים Michelin ו-Bridgestone בעיקר.",
+    "status": "פעיל",
+    "created_date": "2022-11-03",
+    "last_purchase": "2026-03-01"
+  },
+  {
+    "id": "C004",
+    "name": "דוד לוי",
+    "phone": "050-1234567",
+    "address": "הרימון 8, ראשון לציון",
+    "email": "david.levy@gmail.com",
+    "contact_person": "",
+    "business_id": "",
+    "customer_type": "פרטי",
+    "discount_pct": 0,
+    "payment_terms": "מזומן",
+    "special_price_list": "",
+    "vehicles": [
+      {
+        "plate": "78-901-23",
+        "tire_size": "205/55R16"
+      }
+    ],
+    "notes": "",
+    "status": "פעיל",
+    "created_date": "2025-06-20",
+    "last_purchase": "2026-03-10"
+  },
+  {
+    "id": "C005",
+    "name": "מוסך גלגל זהב",
+    "phone": "08-9001122",
+    "address": "באר שבע, שדרות רגר 45",
+    "email": "galgal@zahav.net",
+    "contact_person": "יוסי גולד",
+    "business_id": "515234567",
+    "customer_type": "מוסך",
+    "discount_pct": 10,
+    "payment_terms": "שוטף 30",
+    "special_price_list": "",
+    "vehicles": [],
+    "notes": "פעיל פחות מאז שינוי ניהול.",
+    "status": "לא פעיל",
+    "created_date": "2021-08-14",
+    "last_purchase": "2025-09-05"
+  },
+  {
+    "id": "C006",
+    "name": "נועם שמיר",
+    "phone": "058-2223344",
+    "address": "הגפן 22, כפר סבא",
+    "email": "noam.shamir@walla.com",
+    "contact_person": "",
+    "business_id": "",
+    "customer_type": "פרטי",
+    "discount_pct": 0,
+    "payment_terms": "מזומן",
+    "special_price_list": "",
+    "vehicles": [
+      {
+        "plate": "34-567-89",
+        "tire_size": "225/45R17"
+      }
+    ],
+    "notes": "לקוח חדש ממרץ 2026.",
+    "status": "פעיל",
+    "created_date": "2026-03-13",
+    "last_purchase": "2026-03-13"
+  },
+  {
+    "id": "C007",
+    "name": "ספינת המדע בע\"מ",
+    "phone": "04-8887766",
+    "address": "חיפה, רחוב פל-ים 10",
+    "email": "info@scienceship.co.il",
+    "contact_person": "רינה גרין",
+    "business_id": "516789012",
+    "customer_type": "ציי",
+    "discount_pct": 20,
+    "payment_terms": "שוטף 90",
+    "special_price_list": "ציי-גדול",
+    "vehicles": [
+      {
+        "plate": "90-123-45",
+        "tire_size": "215/60R16"
+      },
+      {
+        "plate": "67-890-12",
+        "tire_size": "215/60R16"
+      }
+    ],
+    "notes": "ציי גדול. חוזה עד 12/2026.",
+    "status": "מושהה",
+    "created_date": "2023-02-28",
+    "last_purchase": "2025-12-15"
+  },
+  {
+    "id": "C008",
+    "name": "יעל ברק",
+    "phone": "053-3334455",
+    "address": "צפת, שכונת הכנרת 5",
+    "email": "yael.barak@hotmail.com",
+    "contact_person": "",
+    "business_id": "",
+    "customer_type": "פרטי",
+    "discount_pct": 0,
+    "payment_terms": "מזומן",
+    "special_price_list": "",
+    "vehicles": [
+      {
+        "plate": "22-333-44",
+        "tire_size": "205/60R16"
+      }
+    ],
+    "notes": "לקוחה חדשה מרץ 2026.",
+    "status": "פעיל",
+    "created_date": "2026-03-05",
+    "last_purchase": "2026-03-05"
+  }
+]

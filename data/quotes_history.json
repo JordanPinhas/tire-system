@@ -1,0 +1,475 @@
+[
+  {
+    "id": "Q20260315123016",
+    "date": "2026-03-15",
+    "time": "12:30",
+    "customer": "ירדן",
+    "phone": "",
+    "email": "",
+    "items": [
+      {
+        "description": "צמיג משא 315/80R22.5 (154/150M) למשאיות כבדות / סמי-טריילרים, ציר אחורי, עומס 3,750 ק\"ג, אחריות 12 חודשים",
+        "size": "",
+        "brand": "",
+        "qty": 4,
+        "unit_price": 1850.0
+      }
+    ],
+    "discount": 0.0,
+    "total": 8732,
+    "pdf_path": "C:\\Users\\Jorda\\OneDrive\\מסמכים\\CLAUDE\\Tire System\\outputs\\quotes\\quote_Q20260315123016.pdf",
+    "status": "נוצר"
+  },
+  {
+    "id": "Q20260315064235",
+    "date": "2026-03-15",
+    "time": "06:42",
+    "customer": "ירדן",
+    "phone": "",
+    "email": "",
+    "items": [
+      {
+        "description": "צמיג משא 315/80R22.5 (154/150M) למשאיות כבדות / סמי-טריילרים, ציר אחורי, עומס 3,750 ק\"ג ליחידה, אחריות 12 חודשים",
+        "size": "",
+        "brand": "",
+        "qty": 4,
+        "unit_price": 1850.0
+      }
+    ],
+    "discount": 0.0,
+    "total": 8732,
+    "pdf_path": "C:\\Users\\Jorda\\OneDrive\\מסמכים\\CLAUDE\\Tire System\\outputs\\quotes\\quote_Q20260315064235.pdf",
+    "status": "נוצר"
+  },
+  {
+    "id": "Q20260315004513",
+    "date": "2026-03-15",
+    "time": "00:45",
+    "customer": "ירדן",
+    "phone": "",
+    "email": "",
+    "items": [
+      {
+        "description": "",
+        "size": "הצעת",
+        "brand": "מחיר",
+        "qty": 1,
+        "unit_price": 2024.0
+      },
+      {
+        "description": "",
+        "size": "תאריך:",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "תוקף",
+        "brand": "ההצעה:",
+        "qty": 7,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "לכבוד:",
+        "brand": "מר",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "פירוט",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "פריט",
+        "brand": "תיאור",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "1",
+        "brand": "צמיג",
+        "qty": 1,
+        "unit_price": 315.0
+      },
+      {
+        "description": "",
+        "size": "סיכום",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "פרט",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "סה\"כ",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "מע\"מ",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "סה\"כ",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "תנאים",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "✓",
+        "brand": "משלוח:",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "✓",
+        "brand": "אספקה:",
+        "qty": 2,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "✓",
+        "brand": "תשלום:",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "✓",
+        "brand": "התקנה:",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "✓",
+        "brand": "איזון:",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "המלצות",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "🔹",
+        "brand": "חשוב:",
+        "qty": 1,
+        "unit_price": 315.0
+      },
+      {
+        "description": "",
+        "size": "🔹",
+        "brand": "בדיקת",
+        "qty": 1,
+        "unit_price": 8.5
+      },
+      {
+        "description": "",
+        "size": "🔹",
+        "brand": "חיסכון:",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "📞",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "ירדן",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "ההצעה",
+        "brand": "שלפניך",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "למימוש",
+        "brand": "מיידי",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "📱",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 3.0
+      },
+      {
+        "description": "",
+        "size": "✉️",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "🕒",
+        "brand": "שעות",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "נשמח",
+        "brand": "לשרת",
+        "qty": 1,
+        "unit_price": 0.0
+      },
+      {
+        "description": "",
+        "size": "הערה:",
+        "brand": "המחירים",
+        "qty": 1,
+        "unit_price": 0.0
+      }
+    ],
+    "discount": 0.0,
+    "total": 3145,
+    "pdf_path": "C:\\Users\\Jorda\\OneDrive\\מסמכים\\CLAUDE\\Tire System\\outputs\\quotes\\quote_Q20260315004513.pdf",
+    "status": "נוצר"
+  },
+  {
+    "id": "Q20260315003620",
+    "date": "2026-03-15",
+    "time": "00:36",
+    "customer": "ירדן",
+    "phone": "",
+    "email": "",
+    "items": [
+      {
+        "size": "הצעת",
+        "brand": "מחיר",
+        "qty": 1,
+        "unit_price": 2024
+      },
+      {
+        "size": "תאריך:",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "תוקף",
+        "brand": "ההצעה:",
+        "qty": 7,
+        "unit_price": 0
+      },
+      {
+        "size": "לכבוד:",
+        "brand": "מר",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "פירוט",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "פריט",
+        "brand": "תיאור",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "1",
+        "brand": "צמיג",
+        "qty": 1,
+        "unit_price": 315
+      },
+      {
+        "size": "סיכום",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "פרט",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "סה\"כ",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "מע\"מ",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "סה\"כ",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "תנאים",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "✓",
+        "brand": "משלוח:",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "✓",
+        "brand": "אספקה:",
+        "qty": 2,
+        "unit_price": 0
+      },
+      {
+        "size": "✓",
+        "brand": "תשלום:",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "✓",
+        "brand": "התקנה:",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "✓",
+        "brand": "איזון:",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "המלצות",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "🔹",
+        "brand": "חשוב:",
+        "qty": 1,
+        "unit_price": 315
+      },
+      {
+        "size": "🔹",
+        "brand": "בדיקת",
+        "qty": 1,
+        "unit_price": 8.5
+      },
+      {
+        "size": "🔹",
+        "brand": "חיסכון:",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "📞",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "ירדן",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "ההצעה",
+        "brand": "שלפניך",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "למימוש",
+        "brand": "מיידי",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "📱",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 3
+      },
+      {
+        "size": "✉️",
+        "brand": "",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "🕒",
+        "brand": "שעות",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "נשמח",
+        "brand": "לשרת",
+        "qty": 1,
+        "unit_price": 0
+      },
+      {
+        "size": "הערה:",
+        "brand": "המחירים",
+        "qty": 1,
+        "unit_price": 0
+      }
+    ],
+    "discount": 0.0,
+    "total": 3145,
+    "pdf_path": "C:\\Users\\Jorda\\OneDrive\\מסמכים\\CLAUDE\\Tire System\\outputs\\quotes\\quote_Q20260315003620.pdf",
+    "status": "נוצר"
+  }
+]
