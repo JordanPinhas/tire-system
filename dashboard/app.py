@@ -20,6 +20,7 @@ if str(ROOT_DIR) not in sys.path:
 app = Flask(__name__)
 
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin123")
+print(f"[DEBUG] DASHBOARD_PASSWORD from env: '{DASHBOARD_PASSWORD}'")
 SESSION_SECRET     = os.getenv("SESSION_SECRET", "change-me-in-production")
 API_KEY            = os.getenv("API_KEY", "")
 app.secret_key     = SESSION_SECRET
@@ -146,8 +147,11 @@ def save_report_to_history(report_text: str) -> dict:
 
 def _load_campaigns_queue():
     try:
-        return json.loads(CAMPAIGNS_QUEUE_FILE.read_text(encoding="utf-8"))
-    except Exception:
+        data = json.loads(CAMPAIGNS_QUEUE_FILE.read_text(encoding="utf-8"))
+        print(f"[CAMPAIGNS] loaded {len(data)} campaigns from {CAMPAIGNS_QUEUE_FILE}")
+        return data
+    except Exception as e:
+        print(f"[CAMPAIGNS] error loading queue: {e}")
         return []
 
 def _save_campaigns_queue(queue):
