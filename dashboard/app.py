@@ -2128,7 +2128,11 @@ def api_create_campaign():
 def api_campaigns_queue():
     """מחזיר את כל הקמפיינים הממתינים לאישור"""
     queue = _load_campaigns_queue()
+    print(f"[QUEUE DEBUG] total={len(queue)}")
+    for c in queue:
+        print(f"[QUEUE DEBUG] id={c['id']} status={c['status']} topic={c['topic'][:30]}")
     pending = [c for c in queue if c["status"] == "ממתין_לאישור"]
+    print(f"[QUEUE DEBUG] pending={len(pending)}")
     return jsonify({"ok": True, "campaigns": pending})
 
 
