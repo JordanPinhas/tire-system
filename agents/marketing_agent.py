@@ -100,10 +100,10 @@ class MarketingAgent(BaseAgent):
                 model="imagen-4.0-generate-001",
             )
             if result.get("success"):
-                filename = result.get("filename") or Path(result.get("path", "")).name
-                image_path = f"outputs/marketing/{filename}"
+                image_path = result.get("path")
                 print(f"[CAMPAIGN] תמונה נוצרה: {image_path}")
             else:
+                image_path = None
                 print(f"[CAMPAIGN] שגיאת תמונה: {result.get('error')}")
         except Exception as e:
             print(f"[CAMPAIGN] Exception בתמונה: {e}")
@@ -124,15 +124,31 @@ class MarketingAgent(BaseAgent):
             "strategy": strategy,
             "texts": texts_raw,
             "image_path": image_path,
+            "image_base64": None,
             "status": "ממתין_לאישור",
             "created_at": datetime.now().isoformat(timespec="seconds"),
             "approved_at": None,
             "published_at": None,
             "rejected_reason": None,
         }
+
+        if result.get("success") and result.get("path"):
+            try:
+                import base64
+                with open(result["path"], "rb") as f:
+                    campaign["image_base64"] = base64.b64encode(
+                        f.read()).decode("utf-8")
+            except Exception as e:
+                print(f"[CAMPAIGN] base64 error: {e}")
+                campaign["image_base64"] = None
+        else:
+            campaign["image_base64"] = None
         queue.append(campaign)
         queue_file.write_text(
             json.dumps(queue, ensure_ascii=False, indent=2),
             encoding="utf-8"
         )
+        print(f"[CAMPAIGN CREATED] id={campaign['id']} topic={topic} status={campaign['status']}")
+        print(f"[CAMPAIGN FILE] saved to {queue_file}")
+        print(f"[CAMPAIGN FILE] exists={queue_file.exists()}")
         return campaign

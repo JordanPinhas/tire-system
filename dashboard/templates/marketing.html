@@ -997,62 +997,59 @@ async function loadLog() {
       container.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;">אין פרסומים עדיין</div>';
       return;
     }
-    container.innerHTML = data.campaigns.map(c => `
-        <div class="card mb-3" style="background:#1a1a2e;border:1px solid #30363d;border-radius:12px">
-            <!-- כותרת -->
-            <div class="card-header d-flex justify-content-between align-items-center"
-                 style="background:#161b22;border-radius:12px 12px 0 0">
+    container.innerHTML = data.campaigns.map((c, idx) => `
+        <div class="border-bottom">
+            <!-- כותרת — לחיצה פותחת/סוגרת -->
+            <div class="d-flex justify-content-between align-items-center p-3"
+                 style="cursor:pointer"
+                 onclick="toggleCampaign(${idx})">
                 <div>
                     <strong>${c.topic}</strong>
                     <span class="badge bg-success ms-2">פורסם</span>
-                    <span class="badge bg-secondary ms-1">${c.campaign_type}</span>
+                    <span class="badge bg-secondary ms-1">${c.campaign_type || ''}</span>
+                    <div class="text-muted small mt-1">
+                        ${c.platforms ? c.platforms.join(' · ') : ''} |
+                        ${new Date(c.published_at).toLocaleString('he-IL')}
+                    </div>
                 </div>
-                <div class="text-muted small">
-                    ${new Date(c.published_at).toLocaleString('he-IL')}
-                </div>
+                <span id="arrow-${idx}" style="font-size:1.2rem">▼</span>
             </div>
-            <div class="card-body">
+            <!-- תוכן — מוסתר כברירת מחדל -->
+            <div id="campaign-detail-${idx}" style="display:none;padding:0 1rem 1rem">
                 <div class="row">
                     <!-- תמונה -->
-                    <div class="col-md-4">
+                    <div class="col-md-4 mb-3">
                         ${c.image_base64
                             ? `<img src="data:image/png;base64,${c.image_base64}"
                                    class="img-fluid rounded"
-                                   style="max-height:200px;width:100%;object-fit:cover">`
+                                   style="max-height:220px;width:100%;object-fit:cover">`
                             : `<div class="d-flex align-items-center justify-content-center
-                                         bg-dark rounded" style="height:150px;color:#666">
+                                         rounded" style="height:150px;background:#111;color:#666">
                                    📷 אין תמונה
                                </div>`
                         }
-                        <!-- פלטפורמות -->
                         <div class="mt-2 d-flex flex-wrap gap-1">
-                            ${c.platforms.map(p => `
-                                <span class="badge bg-primary">${p}</span>
-                            `).join('')}
+                            ${(c.platforms || []).map(p =>
+                                `<span class="badge bg-primary">${p}</span>`
+                            ).join('')}
                         </div>
                     </div>
-                    <!-- תוכן -->
+                    <!-- טקסטים -->
                     <div class="col-md-8">
-                        <!-- טקסטים -->
-                        <div class="mb-3">
-                            <h6 class="text-warning mb-2">📝 טקסטים לפלטפורמות</h6>
-                            <div style="background:#0d1117;border-radius:8px;
-                                        padding:0.75rem;font-size:0.85rem;
-                                        line-height:1.6;max-height:200px;
-                                        overflow-y:auto">
-                                ${renderMarkdown(c.texts)}
-                            </div>
+                        <h6 class="text-warning mb-2">📝 טקסטים</h6>
+                        <div style="background:#0d1117;border-radius:8px;
+                                    padding:0.75rem;font-size:0.85rem;
+                                    line-height:1.6;max-height:200px;
+                                    overflow-y:auto">
+                            ${renderMarkdown(c.texts || '')}
                         </div>
-                        <!-- אסטרטגיה -->
-                        <details>
-                            <summary class="text-muted"
-                                     style="cursor:pointer;font-size:0.85rem">
-                                🎯 אסטרטגיה וקונספט
+                        <details class="mt-2">
+                            <summary style="cursor:pointer;color:#8b949e;font-size:0.85rem">
+                                🎯 אסטרטגיה
                             </summary>
-                            <div class="mt-2" style="background:#0d1117;
-                                        border-radius:8px;padding:0.75rem;
-                                        font-size:0.85rem;line-height:1.6">
-                                ${renderMarkdown(c.strategy)}
+                            <div class="mt-1" style="background:#0d1117;border-radius:8px;
+                                        padding:0.75rem;font-size:0.85rem;line-height:1.6">
+                                ${renderMarkdown(c.strategy || '')}
                             </div>
                         </details>
                     </div>
@@ -1215,6 +1212,14 @@ function showCampToast(msg, type='success') {
 document.getElementById('camp-modal-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeCampModal();
 });
+
+function toggleCampaign(idx) {
+    const detail = document.getElementById(`campaign-detail-${idx}`);
+    const arrow  = document.getElementById(`arrow-${idx}`);
+    const isOpen = detail.style.display !== 'none';
+    detail.style.display = isOpen ? 'none' : 'block';
+    arrow.textContent    = isOpen ? '▼' : '▲';
+}
 
 // טעינה ראשונית
 loadQueue();

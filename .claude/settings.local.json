@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python3 -c \"import json; data=json.load\\(open\\(r''c:/Users/Jorda/OneDrive/מסמכים/CLAUDE/Tire System/data/inventory.json'', encoding=''utf-8''\\)\\); print\\(''count:'', len\\(data\\)\\); print\\(''keys:'', list\\(data[0].keys\\(\\)\\) if data else ''empty''\\); print\\(''first item:'', json.dumps\\(data[0], ensure_ascii=False, indent=2\\) if data else ''empty''\\)\")",
-      "Bash(python -c \"import json; data=json.load\\(open\\(r''c:/Users/Jorda/OneDrive/\\\\u05de\\\\u05e1\\\\u05de\\\\u05db\\\\u05d9\\\\u05dd/CLAUDE/Tire System/data/inventory.json'', encoding=''utf-8''\\)\\); print\\(''count:'', len\\(data\\)\\); print\\(''keys:'', list\\(data[0].keys\\(\\)\\) if data else ''empty''\\); print\\(''first item:'', json.dumps\\(data[0], ensure_ascii=False, indent=2\\) if data else ''empty''\\)\")"
+      "Bash(python -c \"import json; data=json.load\\(open\\(r''c:/Users/Jorda/OneDrive/\\\\u05de\\\\u05e1\\\\u05de\\\\u05db\\\\u05d9\\\\u05dd/CLAUDE/Tire System/data/inventory.json'', encoding=''utf-8''\\)\\); print\\(''count:'', len\\(data\\)\\); print\\(''keys:'', list\\(data[0].keys\\(\\)\\) if data else ''empty''\\); print\\(''first item:'', json.dumps\\(data[0], ensure_ascii=False, indent=2\\) if data else ''empty''\\)\")",
+      "Bash(pip install:*)"
     ]
   }
 }
