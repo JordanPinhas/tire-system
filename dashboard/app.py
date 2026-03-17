@@ -2308,5 +2308,7 @@ def api_v1_chat():
 if __name__ == "__main__":
     port  = int(os.getenv("PORT", 5000))
     debug = os.getenv("FLASK_ENV") == "development"
+    print(f"[STARTUP] DASHBOARD_PASSWORD set: {bool(os.getenv('DASHBOARD_PASSWORD'))}")
+    print(f"[STARTUP] SESSION_SECRET set: {bool(os.getenv('SESSION_SECRET'))}")
     print(f"דשבורד מערכת צמיגים — http://localhost:{port}")
     app.run(host="0.0.0.0", port=port, debug=debug)
