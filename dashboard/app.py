@@ -96,6 +96,35 @@ def get_agent(name: str):
     return _agent_instances[name]
 
 DATA_DIR = Path(__file__).parent.parent / "data"
+
+def ensure_data_files():
+    """מוודא שכל קבצי הנתונים קיימים"""
+    defaults = {
+        "inventory.json":       "[]",
+        "leads.json":           "[]",
+        "appointments.json":    "[]",
+        "customers.json":       "[]",
+        "quotes_history.json":  "[]",
+        "landed_costs.json":    "[]",
+        "campaigns_queue.json": "[]",
+        "campaigns_log.json":   "[]",
+        "reports_history.json": "[]",
+        "rely_calculator.json": "{}",
+        "rely_stock.json":      "{}",
+        "import_log.json":      "[]",
+        "service_points.json":  "[]",
+        "tire_specs.json":      "[]",
+        "cost_defaults.json":   "{}",
+    }
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    for filename, default in defaults.items():
+        filepath = DATA_DIR / filename
+        if not filepath.exists():
+            filepath.write_text(default, encoding="utf-8")
+            print(f"[INIT] Created missing file: {filename}")
+
+ensure_data_files()
+
 INVENTORY_FILE = DATA_DIR / "inventory.json"
 LEADS_FILE = DATA_DIR / "leads.json"
 APPOINTMENTS_FILE = DATA_DIR / "appointments.json"
