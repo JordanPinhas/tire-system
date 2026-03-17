@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}ראשי - דשבורד צמיגים{% endblock %}
+{% block page_title %}סיכום כללי{% endblock %}
+{% block breadcrumb %}עמוד ראשי{% endblock %}
+
+{% block content %}
+
+<!-- כרטיסי סיכום -->
+<div class="stat-grid">
+
+  <div class="stat-card blue">
+    <div class="stat-icon">📦</div>
+    <div class="stat-value">{{ summary.inventory_count }}</div>
+    <div class="stat-label">פריטי מלאי</div>
+    <div class="stat-sub">
+      {% if summary.low_stock_count > 0 %}
+        <span class="text-red">⚠ {{ summary.low_stock_count }} מתחת למינימום</span>
+      {% else %}
+        <span class="text-green">✓ כל המלאי תקין</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stat-card orange">
+    <div class="stat-icon">👥</div>
+    <div class="stat-value">{{ summary.open_leads_count }}</div>
+    <div class="stat-label">לידים פתוחים</div>
+    <div class="stat-sub">
+      סה"כ <span>{{ summary.leads_total }}</span> לידים |
+      המרה <span>{{ summary.conversion_pct }}%</span>
+    </div>
+  </div>
+
+  <div class="stat-card green">
+    <div class="stat-icon">📅</div>
+    <div class="stat-value">{{ summary.today_appointments }}</div>
+    <div class="stat-label">תורים היום</div>
+    <div class="stat-sub">תאריך: <span>{{ today }}</span></div>
+  </div>
+
+  <div class="stat-card purple">
+    <div class="stat-icon">🤖</div>
+    <div class="stat-value">{{ agents_count }}</div>
+    <div class="stat-label">סוכני AI פעילים</div>
+    <div class="stat-sub"><span>claude-sonnet-4-5</span></div>
+  </div>
+
+</div>
+
+<!-- שורת ערך מלאי -->
+<div class="alert alert-info" style="margin-bottom:24px;">
+  💰 ערך מלאי כולל (עלות):
+  <strong>{{ "{:,.0f}".format(summary.total_inventory_value) }} ₪</strong>
+</div>
+
+<!-- דוח יומי -->
+<div style="margin-bottom: 24px;">
+  <button id="btn-daily-report" onclick="fetchDailyReport()"
+          style="padding:10px 22px; border-radius:8px; border:none; background:var(--blue); color:#fff; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity .15s;"
+          onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+    📊 דוח יומי
+  </button>
+  <a href="/marketing"
+     style="display:inline-flex; align-items:center; position:relative; margin-right:10px; padding:10px 18px; border-radius:8px; border:1px solid rgba(251,191,36,.4); background:rgba(251,191,36,.1); color:#fbbf24; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; transition:background .15s;"
+     onmouseover="this.style.background='rgba(251,191,36,.2)'" onmouseout="this.style.background='rgba(251,191,36,.1)'">
+    📢 קמפיינים לאישור
+    <span id="pending-badge"
+          style="display:none; position:absolute; top:-8px; left:-8px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; min-width:18px; text-align:center; line-height:1.4;">0</span>
+  </a>
+  <button id="btn-download-report" onclick="downloadReport()"
+          style="display:none; margin-right:10px; padding:10px 18px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .15s;"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+    ⬇️ הורד PDF
+  </button>
+  <div id="daily-report-output" style="display:none; margin-top:16px;">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">📊 דוח יומי — <span id="report-date"></span></span>
+      </div>
+      <div class="panel-body" style="padding:20px;">
+        <div id="report-content" style="white-space:pre-wrap; font-size:13px; line-height:1.7;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- היסטוריית דוחות -->
+<div class="panel" style="margin-bottom:24px;">
+  <div class="panel-header">
+    <span class="panel-title">📋 היסטוריית דוחות יומיים</span>
+    <button class="btn-sm btn-primary" onclick="loadReportsHistory()">רענן</button>
+  </div>
+  <div class="panel-body" id="reports-history-list">
+    <div class="empty-state" style="padding:24px;">
+      <div class="icon">📋</div>אין דוחות שמורים עדיין
+    </div>
+  </div>
+</div>
+
+<!-- Modal לצפייה בדוח ישן -->
+<div id="report-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; width:min(720px,90vw); max-height:80vh; display:flex; flex-direction:column;">
+    <div style="padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+      <span id="report-modal-title" style="font-size:14px; font-weight:700;">דוח יומי</span>
+      <button onclick="closeReportModal()" style="background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer; line-height:1;">✕</button>
+    </div>
+    <div style="padding:20px; overflow-y:auto; flex:1;">
+      <pre id="report-modal-content" style="white-space:pre-wrap; font-family:inherit; font-size:13px; line-height:1.7; color:var(--text); margin:0;"></pre>
+    </div>
+    <div style="padding:14px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px;">
+      <button onclick="closeReportModal()" class="btn-sm" style="background:var(--surface2); color:var(--text); border:1px solid var(--border);">סגור</button>
+      <button id="btn-modal-pdf" onclick="downloadModalReport()" class="btn-sm btn-primary">⬇️ הורד PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- טבלאות -->
+<div class="grid-2">
+
+  <!-- לידים אחרונים -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">👥 לידים אחרונים</span>
+      <a href="/leads" class="filter-btn">כל הלידים</a>
+    </div>
+    <div class="panel-body table-wrap">
+      {% if recent_leads %}
+      <table>
+        <thead>
+          <tr>
+            <th>שם</th>
+            <th>סוג</th>
+            <th>עניין</th>
+            <th>סטטוס</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in recent_leads %}
+          <tr>
+            <td class="fw-bold">{{ lead.name }}</td>
+            <td><span class="badge badge-blue">{{ lead.customer_type }}</span></td>
+            <td class="text-dim" style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ lead.interest }}</td>
+            <td>
+              {% if lead.status == 'חדש' %}
+                <span class="badge badge-orange">חדש</span>
+              {% elif lead.status == 'בטיפול' %}
+                <span class="badge badge-blue">בטיפול</span>
+              {% elif lead.status == 'סגור' %}
+                <span class="badge badge-green">סגור</span>
+              {% else %}
+                <span class="badge badge-gray">{{ lead.status }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <div class="empty-state"><div class="icon">👥</div>אין לידים עדיין</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- תורים קרובים -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">📅 תורים קרובים</span>
+      <a href="/appointments" class="filter-btn">כל התורים</a>
+    </div>
+    <div class="panel-body table-wrap">
+      {% if upcoming %}
+      <table>
+        <thead>
+          <tr>
+            <th>לקוח</th>
+            <th>תאריך</th>
+            <th>שעה</th>
+            <th>סניף</th>
+            <th>סטטוס</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for appt in upcoming %}
+          <tr>
+            <td class="fw-bold">{{ appt.customer_name }}</td>
+            <td>{{ appt.date }}</td>
+            <td>{{ appt.time }}</td>
+            <td><span class="badge badge-purple">{{ appt.location }}</span></td>
+            <td>
+              {% if appt.status == 'בביצוע' %}
+                <span class="badge badge-green">בביצוע</span>
+              {% elif appt.status == 'ממתין' %}
+                <span class="badge badge-orange">ממתין</span>
+              {% else %}
+                <span class="badge badge-gray">{{ appt.status }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <div class="empty-state"><div class="icon">📅</div>אין תורים קרובים</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- סוכנים פעילים -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">🤖 סוכני AI פעילים</span>
+  </div>
+  <div class="panel-body" style="padding: 16px 20px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+      {% for agent in agents %}
+      <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 160px;">
+        <div style="font-size: 18px; margin-bottom: 4px;">{{ agent.icon }}</div>
+        <div style="font-size: 12px; font-weight: 600; color: var(--blue-light);">{{ agent.name }}</div>
+        <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">{{ agent.desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+async function fetchDailyReport() {
+  const btn     = document.getElementById("btn-daily-report");
+  const output  = document.getElementById("daily-report-output");
+  const content = document.getElementById("report-content");
+  const dateEl  = document.getElementById("report-date");
+
+  btn.disabled = true;
+  btn.textContent = "⏳ מייצר דוח...";
+  output.style.display = "none";
+
+  try {
+    const res  = await fetch("/api/daily-report");
+    const data = await res.json();
+    if (data.ok) {
+      content.textContent = data.report;
+      dateEl.textContent  = new Date().toLocaleDateString("he-IL", {weekday:"short", day:"numeric", month:"short"});
+      output.style.display = "block";
+      document.getElementById("btn-download-report").style.display = "inline-block";
+    } else {
+      content.textContent  = "שגיאה: " + data.error;
+      output.style.display = "block";
+    }
+  } catch (e) {
+    content.textContent  = "שגיאת תקשורת: " + e.message;
+    output.style.display = "block";
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = "📊 דוח יומי";
+  }
+}
+
+function downloadReport() {
+  window.location.href = '/api/daily-report/pdf';
+}
+
+// ── היסטוריית דוחות ───────────────────────────────────────────────
+let _currentReportId = null;
+
+async function loadReportsHistory() {
+  const container = document.getElementById('reports-history-list');
+  container.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="icon">⏳</div>טוען...</div>';
+  try {
+    const res  = await fetch('/api/reports-history');
+    const data = await res.json();
+    if (!data.reports || data.reports.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="icon">📋</div>אין דוחות שמורים עדיין</div>';
+      return;
+    }
+    container.innerHTML = data.reports.map(r => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid var(--border);">
+        <div style="flex:1; min-width:0;">
+          <span style="font-weight:600;">📊 דוח ${r.date}</span>
+          <span class="text-dim" style="margin-right:10px; font-size:12px;">${r.time}</span>
+          <div class="text-dim" style="font-size:12px; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:500px;">${r.preview}</div>
+        </div>
+        <div style="display:flex; gap:8px; margin-right:16px; flex-shrink:0;">
+          <button class="btn-sm btn-primary" onclick="viewReport(${r.id},'${r.date} ${r.time}')">👁️ צפה</button>
+          <button class="btn-sm" style="background:var(--surface2); color:var(--text); border:1px solid var(--border);"
+                  onclick="window.location.href='/api/reports-history/${r.id}/pdf'">⬇️ PDF</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = '<div class="empty-state" style="padding:24px; color:var(--red);">שגיאה בטעינה</div>';
+  }
+}
+
+async function viewReport(id, title) {
+  _currentReportId = id;
+  const res  = await fetch(`/api/reports-history/${id}`);
+  const data = await res.json();
+  document.getElementById('report-modal-title').textContent   = `📊 דוח יומי | ${title}`;
+  document.getElementById('report-modal-content').textContent = data.report?.content ?? '';
+  const overlay = document.getElementById('report-modal-overlay');
+  overlay.style.display = 'flex';
+}
+
+function closeReportModal() {
+  document.getElementById('report-modal-overlay').style.display = 'none';
+}
+
+function downloadModalReport() {
+  if (_currentReportId) window.location.href = `/api/reports-history/${_currentReportId}/pdf`;
+}
+
+// סגירה בלחיצה על הרקע
+document.getElementById('report-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeReportModal();
+});
+
+// טען היסטוריה בטעינת העמוד
+loadReportsHistory();
+
+// רענן היסטוריה אחרי יצירת דוח חדש
+const _origFetchDailyReport = fetchDailyReport;
+window.fetchDailyReport = async function() {
+  await _origFetchDailyReport();
+  loadReportsHistory();
+};
+
+// ── קמפיינים ממתינים לאישור ────────────────────────────────────────
+async function loadPendingCampaigns() {
+  try {
+    const res   = await fetch('/api/campaigns/queue');
+    const data  = await res.json();
+    const count = data.campaigns ? data.campaigns.length : 0;
+    const badge = document.getElementById('pending-badge');
+    if (count > 0) {
+      badge.textContent   = count;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch(e) {}
+}
+document.addEventListener('DOMContentLoaded', loadPendingCampaigns);
+setInterval(loadPendingCampaigns, 60000);
+</script>
+
+{% endblock %}

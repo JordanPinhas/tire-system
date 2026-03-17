@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}תורים - דשבורד צמיגים{% endblock %}
+{% block page_title %}ניהול תורים{% endblock %}
+{% block breadcrumb %}לוח תורים{% endblock %}
+
+{% block content %}
+
+<!-- כרטיסי סיכום -->
+<div class="stat-grid" style="margin-bottom: 20px;">
+  <div class="stat-card green">
+    <div class="stat-icon">📅</div>
+    <div class="stat-value">{{ today_count }}</div>
+    <div class="stat-label">תורים היום</div>
+    <div class="stat-sub"><span>{{ today }}</span></div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-icon">⏳</div>
+    <div class="stat-value">{{ pending_count }}</div>
+    <div class="stat-label">ממתינים</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon">📊</div>
+    <div class="stat-value">{{ appointments|length }}</div>
+    <div class="stat-label">
+      {% if active_location %}סניף {{ active_location }}{% else %}סה"כ תורים{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- סינון לפי סניף -->
+<div class="filter-bar">
+  <a href="/appointments" class="filter-btn {% if not active_location %}active{% endif %}">כל הסניפים</a>
+  <a href="/appointments?location=מרכז" class="filter-btn {% if active_location == 'מרכז' %}active{% endif %}">🏢 מרכז - פ"ת</a>
+  <a href="/appointments?location=צפון" class="filter-btn {% if active_location == 'צפון' %}active{% endif %}">🏭 צפון - חיפה</a>
+  <a href="/appointments?location=חיצוני" class="filter-btn {% if active_location == 'חיצוני' %}active{% endif %}">🔗 חיצוני</a>
+</div>
+
+<!-- טבלת תורים -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">
+      📅 תורים
+      {% if active_location %}<span class="text-dim" style="font-weight:400;"> — סניף {{ active_location }}</span>{% endif %}
+      <span class="text-dim" style="font-weight:400; margin-right:6px;">({{ appointments|length }})</span>
+    </span>
+  </div>
+  <div class="panel-body table-wrap">
+    {% if appointments %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>לקוח</th>
+          <th>טלפון</th>
+          <th>תאריך</th>
+          <th>שעה</th>
+          <th>סניף</th>
+          <th>שירות</th>
+          <th>מידה</th>
+          <th>הערות</th>
+          <th>סטטוס</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for appt in appointments %}
+        <tr {% if appt.date == today and appt.status != 'הושלם' %}style="border-right: 3px solid var(--orange);"{% endif %}>
+          <td class="text-dim">{{ appt.id }}</td>
+          <td class="fw-bold">{{ appt.customer_name }}</td>
+          <td>
+            <a href="tel:{{ appt.phone }}" style="color: var(--blue-light); text-decoration: none;">
+              {{ appt.phone }}
+            </a>
+          </td>
+          <td>
+            {% if appt.date == today %}
+              <span class="text-orange fw-bold">{{ appt.date }}</span>
+            {% else %}
+              {{ appt.date }}
+            {% endif %}
+          </td>
+          <td class="fw-bold">{{ appt.time }}</td>
+          <td>
+            {% if appt.location == 'מרכז' %}
+              <span class="badge badge-blue">🏢 מרכז</span>
+            {% elif appt.location == 'צפון' %}
+              <span class="badge badge-purple">🏭 צפון</span>
+            {% else %}
+              <span class="badge badge-gray">{{ appt.location }}</span>
+            {% endif %}
+          </td>
+          <td style="font-size: 12px;">{{ appt.service_type }}</td>
+          <td>
+            {% if appt.tire_size %}
+              <span style="font-family: monospace; background: var(--surface2); padding: 1px 6px; border-radius: 4px; font-size: 11px;">
+                {{ appt.tire_size }}
+              </span>
+            {% else %}
+              <span class="text-dim">—</span>
+            {% endif %}
+          </td>
+          <td class="text-dim" style="font-size: 12px;">{{ appt.notes or '—' }}</td>
+          <td>
+            {% if appt.status == 'בביצוע' %}
+              <span class="badge badge-green">⚡ בביצוע</span>
+            {% elif appt.status == 'ממתין' %}
+              <span class="badge badge-orange">⏳ ממתין</span>
+            {% elif appt.status == 'הושלם' %}
+              <span class="badge badge-gray">✓ הושלם</span>
+            {% elif appt.status == 'בוטל' %}
+              <span class="badge badge-red">✗ בוטל</span>
+            {% else %}
+              <span class="badge badge-gray">{{ appt.status }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="icon">📅</div>
+        <div>אין תורים{% if active_location %} לסניף {{ active_location }}{% endif %}</div>
+        {% if active_location %}
+          <a href="/appointments" class="filter-btn" style="margin-top:12px; display:inline-block;">הצג הכל</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- מידע על סניפים -->
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">🏢 סניף מרכז - פתח תקווה</span></div>
+    <div class="panel-body" style="padding: 16px 20px;">
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+        <div>📍 <span class="text-dim">רחוב הרכב 7, פתח תקווה</span></div>
+        <div>📞 <a href="tel:03-9000001" style="color: var(--blue-light); text-decoration:none;">03-9000001</a></div>
+        <div>🕐 <span class="text-dim">א-ה 08:00-19:00 | ו 08:00-14:00</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">🏭 סניף צפון - חיפה</span></div>
+    <div class="panel-body" style="padding: 16px 20px;">
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+        <div>📍 <span class="text-dim">רחוב התעשייה 12, חיפה</span></div>
+        <div>📞 <a href="tel:04-8000001" style="color: var(--blue-light); text-decoration:none;">04-8000001</a></div>
+        <div>🕐 <span class="text-dim">א-ה 08:00-18:00 | ו 08:00-13:00</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

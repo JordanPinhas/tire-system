@@ -1,0 +1,1511 @@
+{% extends "base.html" %}
+
+{% block title %}עלות נחיתה - דשבורד צמיגים{% endblock %}
+{% block page_title %}מחשבון עלות נחיתה{% endblock %}
+{% block breadcrumb %}Landed Cost Calculator{% endblock %}
+
+{% block content %}
+<style>
+  /* ---- Panels ---- */
+  .lc-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:20px; }
+  .lc-panel-header {
+    padding:13px 18px; border-bottom:1px solid var(--border);
+    font-weight:600; font-size:13px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .lc-panel-body { padding:16px 18px; }
+
+  /* ---- Two-col grid ---- */
+  .top-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+  @media (max-width:860px) { .top-grid { grid-template-columns:1fr; } }
+
+  /* ---- Form fields ---- */
+  .field-row { display:grid; grid-template-columns:140px 1fr; align-items:center; gap:10px; margin-bottom:10px; }
+  .field-label { font-size:12px; color:var(--text-dim); }
+  .lc-input {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    padding:7px 10px; border-radius:6px; font-size:13px; width:100%; outline:none; transition:border-color .15s;
+  }
+  .lc-input:focus { border-color:var(--blue-light); }
+  .lc-select {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    padding:7px 8px; border-radius:6px; font-size:12px; cursor:pointer; outline:none;
+  }
+  .cur-row { display:grid; grid-template-columns:90px 1fr 130px 90px; gap:8px; align-items:center; margin-bottom:10px; }
+  .rate-badge {
+    background:rgba(34,197,94,.12); color:var(--green); border:1px solid rgba(34,197,94,.25);
+    border-radius:5px; padding:4px 9px; font-size:11px; font-family:monospace; white-space:nowrap;
+  }
+  .rate-badge.loading { color:var(--text-dim); background:var(--surface2); border-color:var(--border); }
+
+  /* ---- Items table ---- */
+  .it { width:100%; border-collapse:collapse; }
+  .it th {
+    padding:7px 8px; background:var(--surface2); border-bottom:1px solid var(--border);
+    color:var(--text-dim); font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+    white-space:nowrap; text-align:right;
+  }
+  .it td { padding:4px 6px; border-bottom:1px solid rgba(48,54,61,.4); vertical-align:middle; }
+  .it tfoot td { padding:7px 8px; background:var(--surface2); font-weight:700; font-size:12px; border-bottom:none; }
+  .it tr:last-child td { border-bottom:none; }
+  .it input[type="text"], .it input[type="number"] {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    padding:4px 6px; border-radius:4px; font-size:12px; width:100%; outline:none;
+  }
+  .it input:focus { border-color:var(--blue-light); }
+  .it .calc { color:var(--blue-light); font-family:monospace; font-size:12px; white-space:nowrap; }
+
+  /* ---- Costs table ---- */
+  .ct { width:100%; border-collapse:collapse; }
+  .ct th {
+    padding:8px 12px; background:var(--surface2); border-bottom:1px solid var(--border);
+    color:var(--text-dim); font-size:10px; text-transform:uppercase; letter-spacing:.05em; text-align:right;
+  }
+  .ct td { padding:7px 10px; border-bottom:1px solid rgba(48,54,61,.4); font-size:12.5px; vertical-align:middle; }
+  .ct tfoot td { padding:9px 12px; background:var(--surface2); font-weight:700; border-bottom:none; }
+  .ct .cost-label { white-space:nowrap; }
+  .ct input[type="number"] {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    padding:5px 7px; border-radius:5px; font-size:12px; width:88px; outline:none;
+  }
+  .ct input:focus { border-color:var(--blue-light); }
+  .ct select {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    padding:5px 5px; border-radius:5px; font-size:11px; cursor:pointer;
+  }
+  .cost-ils { color:var(--orange-l); font-family:monospace; font-size:12px; }
+  .cost-auto { color:var(--green); font-family:monospace; font-size:12px; font-weight:600; }
+  .row-recycle { background:rgba(34,197,94,.04); }
+
+  /* ---- Results table ---- */
+  .rt { width:100%; border-collapse:collapse; }
+  .rt th {
+    padding:7px 10px; background:var(--surface2); border-bottom:1px solid var(--border);
+    color:var(--text-dim); font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+    white-space:nowrap; text-align:right;
+  }
+  .rt td { padding:8px 10px; border-bottom:1px solid rgba(48,54,61,.4); font-size:12px; font-family:monospace; }
+  .rt tfoot td { font-weight:700; background:var(--surface2); border-top:2px solid var(--border); border-bottom:none; }
+  .c-size   { font-family:sans-serif !important; font-weight:600; color:var(--text) !important; }
+  .c-landed { color:var(--orange-l) !important; font-weight:700; }
+  .c-sell   { color:var(--green)    !important; font-weight:700; }
+
+  /* ---- Summary strip ---- */
+  .sum-strip {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px; padding:16px 18px; background:var(--surface2);
+    border-top:1px solid var(--border); border-radius:0 0 var(--radius) var(--radius);
+  }
+  .sum-item { text-align:center; }
+  .sum-val  { font-size:20px; font-weight:700; line-height:1.1; }
+  .sum-lbl  { font-size:10px; color:var(--text-dim); margin-top:3px; }
+
+  /* ---- AI panel ---- */
+  .ai-upload-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:6px; font-size:11px; font-weight:600;
+    background:rgba(168,85,247,.15); border:1px solid rgba(168,85,247,.35);
+    color:#c084fc; cursor:pointer; transition:all .15s;
+  }
+  .ai-upload-btn:hover { background:rgba(168,85,247,.25); }
+  .ai-panel {
+    background:var(--surface); border:1px solid rgba(168,85,247,.35);
+    border-radius:var(--radius); margin-bottom:20px; display:none;
+  }
+  .ai-panel.show { display:block; }
+  .ai-panel-hdr {
+    padding:12px 18px; border-bottom:1px solid rgba(168,85,247,.2);
+    font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:space-between;
+    background:rgba(168,85,247,.07); border-radius:var(--radius) var(--radius) 0 0;
+  }
+  .ai-spinner {
+    display:inline-block; width:14px; height:14px;
+    border:2px solid rgba(192,132,252,.3); border-top-color:#c084fc;
+    border-radius:50%; animation:spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .ai-frow { display:flex; gap:8px; padding:5px 0; border-bottom:1px solid rgba(48,54,61,.4); font-size:12px; }
+  .ai-frow:last-child { border-bottom:none; }
+  .ai-fkey { color:var(--text-dim); min-width:130px; font-size:11px; }
+  .ai-fval { font-weight:600; }
+  .ai-it { width:100%; border-collapse:collapse; margin-top:8px; }
+  .ai-it th { font-size:10px; color:var(--text-dim); text-transform:uppercase; padding:5px 8px; border-bottom:1px solid var(--border); background:var(--surface2); text-align:right; }
+  .ai-it td { font-size:11px; padding:5px 8px; border-bottom:1px solid rgba(48,54,61,.4); }
+  .ai-it tr:last-child td { border-bottom:none; }
+
+  /* ---- Toast ---- */
+  .toast {
+    position:fixed; bottom:24px; left:24px; background:var(--surface2); border:1px solid var(--border);
+    border-radius:8px; padding:12px 18px; font-size:13px; z-index:999;
+    display:none; align-items:center; gap:8px; box-shadow:0 4px 20px rgba(0,0,0,.4);
+  }
+  .toast.show { display:flex; }
+  .toast.ok   { border-color:var(--green);  color:var(--green); }
+  .toast.err  { border-color:var(--red);    color:var(--red); }
+  .toast.warn { border-color:var(--orange-l); color:var(--orange-l); }
+
+  /* ---- History ---- */
+  .h-row { font-size:12px; padding:8px 0; border-bottom:1px solid var(--border); display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+  .h-row:last-child { border-bottom:none; }
+
+  /* ---- Auto-load banner ---- */
+  .autoload-banner {
+    background:rgba(59,130,246,.10); border:1px solid rgba(59,130,246,.28);
+    border-radius:7px; padding:9px 16px; font-size:12px; color:var(--blue-light);
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:14px; animation:fadeIn .35s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:none; } }
+
+  /* ---- Defaults modal ---- */
+  .modal-overlay {
+    display:none; position:fixed; inset:0; z-index:1000;
+    background:rgba(0,0,0,.55); align-items:center; justify-content:center;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal-box {
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    width:500px; max-width:96vw; max-height:90vh; display:flex; flex-direction:column;
+    box-shadow:0 8px 40px rgba(0,0,0,.5);
+  }
+  .modal-hdr {
+    padding:15px 20px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .modal-body { padding:18px 20px; overflow-y:auto; flex:1; }
+  .modal-ftr {
+    padding:13px 20px; border-top:1px solid var(--border);
+    display:flex; justify-content:flex-end; gap:10px;
+  }
+  .df-row {
+    display:grid; grid-template-columns:160px 1fr; align-items:center;
+    gap:8px; margin-bottom:9px;
+  }
+  .df-label { font-size:12px; color:var(--text-dim); }
+  .df-group { display:flex; gap:6px; align-items:center; }
+  .df-input {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    padding:5px 8px; border-radius:5px; font-size:12px; outline:none; width:90px;
+  }
+  .df-select {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    padding:5px 6px; border-radius:5px; font-size:12px; cursor:pointer; outline:none;
+  }
+  .df-unit { font-size:11px; color:var(--text-dim); }
+  .df-sep { border:none; border-top:1px solid var(--border); margin:12px 0; }
+</style>
+
+<div class="toast" id="toast"></div>
+
+<!-- auto-load notification banner (appears at top of content) -->
+<div id="autoloadBanner" style="display:none; margin-bottom:14px;"></div>
+
+<!-- ═══════════════════ DEFAULTS MODAL ═══════════════════ -->
+<div class="modal-overlay" id="defaultsModal" onclick="if(event.target===this)closeDefaultsModal()">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span style="font-weight:700; font-size:14px;">⚙️ הגדרות ברירת מחדל — עלויות</span>
+      <button onclick="closeDefaultsModal()"
+        style="background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:18px; line-height:1;">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:11px; color:var(--text-dim); margin-bottom:14px;">
+        ערכים אלה יוטענו אוטומטית כשתפתח עמוד חדש. ניתן לשנות ולשמור בכל עת.
+      </div>
+
+      <!-- Freight -->
+      <div class="df-row">
+        <span class="df-label">🚢 הובלה — שיטה</span>
+        <select class="df-select" id="dfFreightMethod" style="width:180px;">
+          <option value="fixed">סכום קבוע למכולה</option>
+          <option value="kg">מחיר לק"ג</option>
+        </select>
+      </div>
+      <div class="df-row">
+        <span class="df-label">הובלה — ערך</span>
+        <div class="df-group">
+          <input class="df-input" type="number" id="dfFreightValue" min="0" step="0.01">
+          <select class="df-select" id="dfFreightCurrency">
+            <option value="EUR">€ EUR</option><option value="USD">$ USD</option>
+            <option value="ILS">₪ ILS</option><option value="GBP">£ GBP</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="df-sep">
+
+      <!-- Pct costs -->
+      <div class="df-row">
+        <span class="df-label">🏛️ מכס %</span>
+        <div class="df-group">
+          <input class="df-input" type="number" id="dfCustomsPct" min="0" max="200" step="0.1">
+          <span class="df-unit">%</span>
+        </div>
+      </div>
+      <div class="df-row">
+        <span class="df-label">🛡️ ביטוח %</span>
+        <div class="df-group">
+          <input class="df-input" type="number" id="dfInsurancePct" min="0" max="100" step="0.01">
+          <span class="df-unit">%</span>
+        </div>
+      </div>
+      <div class="df-row">
+        <span class="df-label">🏦 עמלת בנק %</span>
+        <div class="df-group">
+          <input class="df-input" type="number" id="dfBankPct" min="0" max="10" step="0.1">
+          <span class="df-unit">%</span>
+        </div>
+      </div>
+
+      <hr class="df-sep">
+
+      <!-- Fixed costs -->
+      <div class="df-row">
+        <span class="df-label">🤝 עמלת סוכן מכס</span>
+        <div class="df-group">
+          <input class="df-input" type="number" id="dfAgentValue" min="0" step="1">
+          <select class="df-select" id="dfAgentCurrency">
+            <option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option>
+          </select>
+        </div>
+      </div>
+      <div class="df-row">
+        <span class="df-label">🚛 הובלה מקומית</span>
+        <div class="df-group">
+          <input class="df-input" type="number" id="dfLocalValue" min="0" step="1">
+          <select class="df-select" id="dfLocalCurrency">
+            <option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="df-sep">
+
+      <div class="df-row">
+        <span class="df-label">📈 % רווח מבוקש</span>
+        <div class="df-group">
+          <input class="df-input" type="number" id="dfProfitMargin" min="1" max="500" step="1">
+          <span class="df-unit">%</span>
+        </div>
+      </div>
+      <div class="df-row">
+        <span class="df-label">♻️ היטל מיחזור</span>
+        <div class="df-group">
+          <input class="df-input" type="number" id="dfRecyclingRate" min="0" step="1">
+          <span class="df-unit">₪/טון</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-sm" onclick="resetToDefaults()"
+        style="background:var(--surface2); border:1px solid var(--border); color:var(--text);">
+        ↺ אפס לברירת מחדל
+      </button>
+      <button class="btn-sm btn-primary" onclick="saveDefaults()">💾 שמור כברירת מחדל</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ AI PANEL ═══════════════════ -->
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-panel-hdr">
+    <span id="aiTitle">🤖 ניתוח חשבונית AI</span>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <span id="aiSpin" class="ai-spinner" style="display:none;"></span>
+      <button id="aiImportBtn" onclick="importFromAI()"
+        style="display:none; padding:5px 12px; border-radius:6px; border:none;
+               background:rgba(168,85,247,.8); color:#fff; font-size:12px; font-weight:600; cursor:pointer;">
+        ✅ ייבא לטבלה
+      </button>
+      <button onclick="closeAI()"
+        style="background:transparent; border:none; color:var(--text-dim); font-size:16px; cursor:pointer;">✕</button>
+    </div>
+  </div>
+  <div id="aiBody" style="padding:14px 18px;"></div>
+</div>
+
+<!-- ═══════════════════ PART A — SHIPMENT DETAILS ═══════════════════ -->
+<div class="top-grid">
+  <div class="lc-panel" style="margin-bottom:0;">
+    <div class="lc-panel-header">
+      <span>📋 א — פרטי המשלוח</span>
+      <div style="display:flex; gap:8px;">
+        <label class="ai-upload-btn" for="fileIn" title="PDF / Excel / תמונה לניתוח AI">
+          📎 נתח חשבונית AI
+        </label>
+        <input type="file" id="fileIn"
+               accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg,.bmp,.tiff,.webp"
+               style="display:none;" onchange="runAI(this)">
+        <button class="btn-sm" onclick="loadLast()"
+          style="background:var(--surface2); border:1px solid var(--border); color:var(--text-dim); font-size:11px;">
+          📥 ייבוא אחרון
+        </button>
+        <button class="btn-sm" onclick="openDefaultsModal()"
+          style="background:var(--surface2); border:1px solid var(--border); color:var(--text-dim); font-size:11px;">
+          ⚙️ הגדרות
+        </button>
+      </div>
+    </div>
+    <div class="lc-panel-body">
+      <div class="field-row">
+        <span class="field-label">מספר חשבונית</span>
+        <input class="lc-input" id="invoiceNum" placeholder="INV-2026-001" oninput="saveFormState()">
+      </div>
+      <div class="field-row">
+        <span class="field-label">ספק</span>
+        <input class="lc-input" id="supplier" placeholder="Linglong Tire Co." oninput="saveFormState()">
+      </div>
+      <div class="field-row">
+        <span class="field-label">תאריך</span>
+        <input class="lc-input" id="invoiceDate" type="date" onchange="saveFormState()">
+      </div>
+
+      <div style="border-top:1px solid var(--border); margin:12px 0 10px;"></div>
+      <div style="font-size:11px; color:var(--text-dim); margin-bottom:8px; text-transform:uppercase; letter-spacing:.05em;">מטבע חשבונית</div>
+      <div class="cur-row">
+        <select class="lc-select" id="currency" onchange="fetchRate()">
+          <option value="EUR">€ EUR</option>
+          <option value="USD">$ USD</option>
+          <option value="GBP">£ GBP</option>
+          <option value="CNY">¥ CNY</option>
+        </select>
+        <span id="rateBadge" class="rate-badge loading">טוען...</span>
+        <input class="lc-input" id="exRate" type="number" step="0.0001" min="0"
+               placeholder="שער המרה" oninput="recalc()" style="font-family:monospace;">
+        <button class="btn-sm" onclick="fetchRate()"
+          style="background:var(--surface2); border:1px solid var(--border); color:var(--text-dim); font-size:11px;">
+          🔄 שלוף
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick results -->
+  <div class="lc-panel" style="margin-bottom:0;">
+    <div class="lc-panel-header">📊 תוצאות מהירות</div>
+    <div class="lc-panel-body" style="padding:14px 18px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+        {% for vid, label, color in [
+          ("rTotal",   'סה"כ עלות נחיתה ₪',   "var(--orange-l)"),
+          ("rAvg",     "ממוצע לצמיג ₪",        "var(--blue-light)"),
+          ("rSell",    "מכירה ממוצעת ₪",       "var(--green)"),
+          ("rMarkup",  "תוספת % על סחורה",     "#c084fc"),
+        ] %}
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center;">
+          <div id="{{ vid }}" style="font-size:18px; font-weight:700; color:{{ color }}; line-height:1.2;">—</div>
+          <div style="font-size:10px; color:var(--text-dim); margin-top:4px;">{{ label }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="font-size:11.5px;">
+        {% for vid, label in [
+          ("sGoods",   "ערך סחורה ₪"),
+          ("sFreight", "הובלה ₪"),
+          ("sCustIns", "מכס + ביטוח ₪"),
+          ("sRecycle", "היטל מיחזור ₪"),
+          ("sOther",   'שאר עלויות ₪'),
+        ] %}
+        <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(48,54,61,.3);">
+          <span style="color:var(--text-dim);">{{ label }}</span>
+          <span id="{{ vid }}" style="font-family:monospace;">—</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div style="margin-top:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="font-size:12px; color:var(--text-dim);">% רווח מבוקש:</span>
+        <input type="number" id="marginPct" value="35" min="1" max="500" oninput="recalc()"
+          style="width:65px; background:var(--surface2); border:1px solid var(--border); color:var(--text);
+                 padding:5px 8px; border-radius:6px; font-size:13px; outline:none;">
+        <span style="color:var(--text-dim);">%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PART B — ITEMS TABLE ═══════════════════ -->
+<div class="lc-panel">
+  <div class="lc-panel-header">
+    <span>🗂️ ב — פריטי החשבונית</span>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-sm" onclick="autoWeights()"
+        style="background:var(--surface2); border:1px solid var(--border); color:var(--text-dim); font-size:11px;">
+        ⚖️ השלם משקלים אוטומטית
+      </button>
+      <button class="btn-sm btn-primary" onclick="addRow({})" style="font-size:11px;">
+        ➕ הוסף שורה
+      </button>
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="it">
+      <thead>
+        <tr>
+          <th style="width:100px;">מק"ט / דגם</th>
+          <th style="width:100px;">מידה</th>
+          <th style="width:54px;">כמות</th>
+          <th style="width:80px;">מחיר יח'</th>
+          <th style="width:72px;">משקל ק"ג</th>
+          <th style="width:88px;">סה"כ משקל</th>
+          <th style="width:100px;">סה"כ ערך ₪</th>
+          <th style="width:30px;"></th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="color:var(--text-dim);">סה"כ</td>
+          <td id="fQty" style="font-family:monospace;">—</td>
+          <td></td>
+          <td id="fWt" style="font-family:monospace; color:var(--text-dim);">—</td>
+          <td id="fWtTot" style="font-family:monospace; color:var(--yellow);">—</td>
+          <td id="fGoods" style="font-family:monospace; color:var(--blue-light);">—</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <div id="emptyMsg" style="text-align:center; padding:28px; color:var(--text-dim); font-size:13px;">
+    לחץ "נתח חשבונית AI" לחילוץ אוטומטי, או "הוסף שורה" להזנה ידנית ←
+  </div>
+</div>
+
+<!-- ═══════════════════ PART C — COSTS ═══════════════════ -->
+<div class="lc-panel">
+  <div class="lc-panel-header">📦 ג — עלויות נוספות</div>
+  <div style="overflow-x:auto;">
+    <table class="ct">
+      <thead>
+        <tr>
+          <th style="width:170px;">עלות</th>
+          <th style="width:185px;">אופן חישוב</th>
+          <th style="width:100px;">ערך</th>
+          <th style="width:62px;">מטבע</th>
+          <th>₪ (חושב)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Freight -->
+        <tr>
+          <td class="cost-label">🚢 הובלה בינלאומית</td>
+          <td>
+            <select id="freightMode" onchange="onFreightMode();recalc();" style="font-size:11px; width:178px;">
+              <option value="kg">מחיר לק"ג</option>
+              <option value="fixed">סכום קבוע למכולה</option>
+            </select>
+          </td>
+          <td>
+            <input type="number" id="freightVal" min="0" step="0.01" value="0" oninput="recalc()">
+            <div id="freightHint" style="font-size:10px; color:var(--text-dim); margin-top:2px;">מחיר לק"ג</div>
+          </td>
+          <td>
+            <select id="freightCur" onchange="recalc()">
+              <option value="USD">$</option><option value="EUR">€</option>
+              <option value="ILS">₪</option><option value="GBP">£</option>
+            </select>
+          </td>
+          <td><span class="cost-ils" id="freightILS">—</span></td>
+        </tr>
+        <!-- Customs -->
+        <tr>
+          <td class="cost-label">🏛️ מכס / היטלי יבוא</td>
+          <td><span style="font-size:11px; color:var(--text-dim);">% מערך הסחורה</span></td>
+          <td>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <input type="number" id="customsPct" min="0" max="200" step="0.1" value="0" oninput="recalc()" style="width:62px;">
+              <span style="font-size:11px; color:var(--text-dim);">%</span>
+            </div>
+          </td>
+          <td>—</td>
+          <td><span class="cost-ils" id="customsILS">—</span></td>
+        </tr>
+        <!-- Insurance -->
+        <tr>
+          <td class="cost-label">🛡️ ביטוח סחורה</td>
+          <td><span style="font-size:11px; color:var(--text-dim);">% מערך הסחורה</span></td>
+          <td>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <input type="number" id="insurancePct" min="0" max="100" step="0.01" value="0.5" oninput="recalc()" style="width:62px;">
+              <span style="font-size:11px; color:var(--text-dim);">%</span>
+            </div>
+          </td>
+          <td>—</td>
+          <td><span class="cost-ils" id="insILS">—</span></td>
+        </tr>
+        <!-- Recycling (auto) -->
+        <tr class="row-recycle">
+          <td class="cost-label">♻️ היטל מיחזור</td>
+          <td><span style="font-size:11px; color:var(--text-dim);">590 ₪/טון × סה"כ משקל</span></td>
+          <td><span class="cost-auto" id="recycleAuto">—</span></td>
+          <td><span style="font-size:11px; color:var(--text-dim);">₪</span></td>
+          <td><span class="cost-ils" id="recycleILS">—</span></td>
+        </tr>
+        <!-- Agent -->
+        <tr>
+          <td class="cost-label">🤝 עמלת סוכן מכס</td>
+          <td><span style="font-size:11px; color:var(--text-dim);">סכום קבוע ← יחסי לפי ערך</span></td>
+          <td><input type="number" id="agentVal" min="0" step="1" value="0" oninput="recalc()"></td>
+          <td><select id="agentCur" onchange="recalc()"><option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option></select></td>
+          <td><span class="cost-ils" id="agentILS">—</span></td>
+        </tr>
+        <!-- Local transport -->
+        <tr>
+          <td class="cost-label">🚛 הובלה מקומית</td>
+          <td><span style="font-size:11px; color:var(--text-dim);">סכום קבוע ← יחסי לפי ערך</span></td>
+          <td><input type="number" id="localVal" min="0" step="1" value="0" oninput="recalc()"></td>
+          <td><select id="localCur" onchange="recalc()"><option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option></select></td>
+          <td><span class="cost-ils" id="localILS">—</span></td>
+        </tr>
+        <!-- Bank fee (% of total) -->
+        <tr>
+          <td class="cost-label">🏦 עמלת בנק / המרה</td>
+          <td><span style="font-size:11px; color:var(--text-dim);">% מסה"כ ערך הסחורה</span></td>
+          <td>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <input type="number" id="bankPct" min="0" max="10" step="0.1" value="0" oninput="recalc()" style="width:62px;">
+              <span style="font-size:11px; color:var(--text-dim);">%</span>
+            </div>
+          </td>
+          <td>—</td>
+          <td><span class="cost-ils" id="bankILS">—</span></td>
+        </tr>
+        <!-- Extra -->
+        <tr>
+          <td class="cost-label">➕ עלות נוספת</td>
+          <td><span style="font-size:11px; color:var(--text-dim);">סכום חופשי ← יחסי לפי ערך</span></td>
+          <td><input type="number" id="extraVal" min="0" step="1" value="0" oninput="recalc()"></td>
+          <td><select id="extraCur" onchange="recalc()"><option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option></select></td>
+          <td><span class="cost-ils" id="extraILS">—</span></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" style="color:var(--text-dim); font-size:12px;">סה"כ עלויות נוספות</td>
+          <td><span style="font-family:monospace; color:var(--orange-l); font-size:14px;" id="totalExtra">—</span></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════ PART D — RESULTS ═══════════════════ -->
+<div class="lc-panel" id="resultsPanel" style="display:none;">
+  <div class="lc-panel-header">
+    <span>📊 ד — עלות נחיתה לפריט</span>
+    <button onclick="updateInventory()"
+      style="padding:5px 12px; border-radius:6px; border:1px solid var(--green);
+             background:rgba(34,197,94,.12); color:var(--green); font-size:11px; font-weight:600; cursor:pointer;">
+      📦 עדכן מחירי מכירה במלאי
+    </button>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="rt">
+      <thead>
+        <tr>
+          <th>מידה / דגם</th>
+          <th>כמות</th>
+          <th>סחורה ₪</th>
+          <th>הובלה ₪</th>
+          <th>מכס ₪</th>
+          <th>ביטוח ₪</th>
+          <th>מיחזור ₪</th>
+          <th>שאר ₪</th>
+          <th>נחיתה לצמיג ₪</th>
+          <th>מכירה מומלץ ₪</th>
+        </tr>
+      </thead>
+      <tbody id="rBody"></tbody>
+      <tfoot id="rFoot"></tfoot>
+    </table>
+  </div>
+  <!-- Save strip -->
+  <div class="sum-strip">
+    <div class="sum-item">
+      <div class="sum-val" id="sTotalLanded" style="color:var(--orange-l);">—</div>
+      <div class="sum-lbl">סה"כ עלות נחיתה ₪</div>
+    </div>
+    <div class="sum-item">
+      <div class="sum-val" id="sAvgTire" style="color:var(--blue-light);">—</div>
+      <div class="sum-lbl">ממוצע לצמיג ₪</div>
+    </div>
+    <div class="sum-item">
+      <div class="sum-val" id="sAvgSell" style="color:var(--green);">—</div>
+      <div class="sum-lbl">מחיר מכירה ממוצע ₪</div>
+    </div>
+    <div class="sum-item" style="display:flex; flex-direction:column; gap:8px; align-items:center;">
+      <button class="btn-sm btn-primary" onclick="saveCalc()">💾 שמור חישוב</button>
+      <button class="btn-sm" onclick="saveTireSpecs()"
+        style="background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.3); color:var(--green); font-size:11px; font-weight:600;">
+        ⚖️ שמור משקלי צמיגים
+      </button>
+      <span id="saveStatus" style="font-size:11px; color:var(--text-dim);"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ HISTORY ═══════════════════ -->
+<div id="historySection" style="display:none;">
+  <div class="lc-panel">
+    <div class="lc-panel-header">
+      <span>📋 היסטוריית חישובים</span>
+      <span class="badge badge-blue" id="historyCount">0</span>
+    </div>
+    <div id="historyBody"
+      style="padding:6px 18px; max-height:280px; overflow-y:auto;"></div>
+  </div>
+</div>
+
+
+<script>
+// ══════════════ STATE ══════════════
+let _aiData    = null;
+let _specs     = {};   // tire_specs.json cache
+let _result    = null; // last recalc output (for save)
+let _rowId     = 0;
+
+const RECYCLE = 590;  // ₪/ton
+const SYM = { EUR:"€", USD:"$", GBP:"£", CNY:"¥", ILS:"₪" };
+
+// ══════════════ UTILS ══════════════
+const $ = id => document.getElementById(id);
+function fmt(n, d=0) {
+  if (n == null || isNaN(n) || !isFinite(n)) return "—";
+  return n.toLocaleString("he-IL", { minimumFractionDigits:d, maximumFractionDigits:d });
+}
+function toast(msg, type="ok") {
+  const t = $("toast");
+  const icon = type==="ok" ? "✓ " : type==="warn" ? "⚠️ " : "✕ ";
+  t.textContent = icon + msg;
+  t.className = "toast show " + type;
+  setTimeout(()=>t.className="toast", type==="warn" ? 5000 : 3500);
+}
+
+// ══════════════ EXCHANGE RATE ══════════════
+async function fetchRate() {
+  const cur = $("currency").value;
+  $("rateBadge").textContent = "טוען...";
+  $("rateBadge").className   = "rate-badge loading";
+  try {
+    const r = await fetch(`/api/exchange-rate/${cur}`);
+    const d = await r.json();
+    if (d.ok && d.rate) {
+      $("exRate").value = d.rate.toFixed(4);
+      $("rateBadge").textContent = `1 ${cur} = ${d.rate.toFixed(4)} ₪`;
+      $("rateBadge").className   = "rate-badge";
+    } else {
+      $("rateBadge").textContent = "שגיאה";
+    }
+  } catch { $("rateBadge").textContent = "שגיאת רשת"; }
+  recalc();
+}
+
+// ══════════════ WEIGHT ESTIMATION ══════════════
+function estimateWeight(size) {
+  if (_specs[size]?.weight_kg) return _specs[size].weight_kg;
+  const m = size.match(/(\d+)\/(\d+)[Rr]([\d.]+)/);
+  // Also handle commercial format like 11R22.5
+  const m2 = size.match(/^(\d+)[Rr]([\d.]+)/);
+  let rim = 0, width = 0;
+  if (m) { width = +m[1]; rim = +m[3]; }
+  else if (m2) { width = +m2[1] * 25.4; rim = +m2[2]; } // rough
+  if (rim >= 22.5 && width >= 315) return 70;  // wide truck
+  if (rim >= 22.5)  return 60;   // standard truck
+  if (rim >= 19.5)  return 50;   // medium truck
+  if (rim >= 18)    return 15;   // SUV / large 4x4
+  return 10;                     // standard passenger
+}
+
+// ══════════════ ITEMS TABLE ══════════════
+function addRow(data={}) {
+  const id    = ++_rowId;
+  const size  = data.size       || "";
+  const model = data.model      || "";
+  const qty   = data.quantity   || 0;
+  const price = data.unit_price || 0;
+  const wt    = data.weight_kg  !== undefined ? data.weight_kg : (size ? estimateWeight(size) : 10);
+
+  const tr = document.createElement("tr");
+  tr.id = `row_${id}`;
+  tr.innerHTML = `
+    <td><input type="text"   id="m${id}" value="${model}" placeholder='מק"ט' style="width:94px;" oninput="recalc()"></td>
+    <td><input type="text"   id="s${id}" value="${size}"  placeholder="315/80R22.5" style="width:94px;" oninput="onSize(${id})"></td>
+    <td><input type="number" id="q${id}" value="${qty}"   min="0" style="width:48px;" oninput="recalc()"></td>
+    <td><input type="number" id="p${id}" value="${price}" min="0" step="0.01" style="width:72px;" oninput="recalc()"></td>
+    <td><input type="number" id="w${id}" value="${wt}"   min="0" step="0.1"  style="width:64px;" oninput="recalc()"></td>
+    <td><span class="calc"   id="tw${id}" style="font-family:monospace; font-size:12px; color:var(--yellow);">—</span></td>
+    <td><span class="calc"   id="gv${id}">—</span></td>
+    <td><button onclick="delRow(${id})"
+      style="background:transparent; border:none; color:var(--red); cursor:pointer; font-size:14px; padding:2px;">🗑</button></td>
+  `;
+  $("itemsBody").appendChild(tr);
+  $("emptyMsg").style.display = "none";
+  recalc();
+}
+
+function delRow(id) {
+  $(`row_${id}`)?.remove();
+  if (!$("itemsBody").children.length) {
+    $("emptyMsg").style.display   = "";
+    $("resultsPanel").style.display = "none";
+    clearQuick();
+  }
+  recalc();
+}
+
+function onSize(id) {
+  const sz = ($(`s${id}`)?.value || "").trim();
+  if (sz) $(`w${id}`).value = estimateWeight(sz);
+  recalc();
+}
+
+function getItems() {
+  return [...$("itemsBody").querySelectorAll("tr")].map(tr => {
+    const id = tr.id.replace("row_", "");
+    return {
+      id,
+      model:      ($(`m${id}`)?.value || "").trim(),
+      size:       ($(`s${id}`)?.value || "").trim(),
+      quantity:   parseFloat($(`q${id}`)?.value) || 0,
+      unit_price: parseFloat($(`p${id}`)?.value) || 0,
+      weight_kg:  parseFloat($(`w${id}`)?.value) || 0,
+    };
+  }).filter(i => i.quantity > 0 || i.unit_price > 0 || i.size);
+}
+
+function autoWeights() {
+  [...$("itemsBody").querySelectorAll("tr")].forEach(tr => {
+    const id = tr.id.replace("row_", "");
+    const sz = ($(`s${id}`)?.value || "").trim();
+    if (sz) $(`w${id}`).value = estimateWeight(sz);
+  });
+  recalc();
+  toast("משקלים עודכנו לפי מידות הצמיגים");
+}
+
+// ══════════════ FREIGHT MODE ══════════════
+function onFreightMode() {
+  const h = { kg:'מחיר לק"ג', fixed:"סכום קבוע למכולה" };
+  $("freightHint").textContent = h[$("freightMode").value] || "";
+}
+
+// ══════════════ MAIN RECALC ══════════════
+function recalc() {
+  const items = getItems();
+  const rate  = parseFloat($("exRate").value) || 0;
+  if (!items.length) { clearQuick(); return; }
+
+  // ---- Goods per item ----
+  items.forEach(i => {
+    i.total_weight = i.weight_kg * i.quantity;
+    i.goods_ils    = i.unit_price * i.quantity * rate;
+    // Update table cells
+    const tw = $(`tw${i.id}`); if (tw) tw.textContent = fmt(i.total_weight, 1) + ' ק"ג';
+    const gv = $(`gv${i.id}`); if (gv) gv.textContent = i.goods_ils > 0 ? fmt(i.goods_ils) + " ₪" : "—";
+  });
+
+  const totalQty    = items.reduce((s,i) => s + i.quantity, 0);
+  const totalWtKg   = items.reduce((s,i) => s + i.total_weight, 0);
+  const totalWtTon  = totalWtKg / 1000;
+  const totalGoods  = items.reduce((s,i) => s + i.goods_ils, 0);
+
+  // Footer
+  $("fQty").textContent   = totalQty;
+  $("fWt").textContent    = totalWtKg > 0 ? fmt(totalWtKg,1) + ' ק"ג' : "—";
+  $("fWtTot").textContent = totalWtTon > 0 ? totalWtTon.toFixed(3) + " טון" : "—";
+  $("fGoods").textContent = totalGoods > 0 ? fmt(totalGoods) + " ₪" : "—";
+
+  // ---- Recycling ----
+  const totalRecycle = totalWtTon * RECYCLE;
+  items.forEach(i => {
+    i.recycling = totalWtKg > 0 ? (i.total_weight / totalWtKg) * totalRecycle : 0;
+  });
+  $("recycleAuto").textContent = fmt(totalRecycle) + " ₪";
+  $("recycleILS").textContent  = fmt(totalRecycle);
+
+  // ---- Freight ----
+  const fMode  = $("freightMode").value;
+  const fVal   = parseFloat($("freightVal").value) || 0;
+  const fCur   = $("freightCur").value;
+  const fRate  = fCur === "ILS" ? 1 : rate;
+  const fTotal = fVal * fRate * (fMode === "kg" ? totalWtKg : 1);
+  items.forEach(i => {
+    i.freight = totalWtKg > 0
+      ? (i.total_weight / totalWtKg) * fTotal
+      : fTotal / items.length;
+  });
+  $("freightILS").textContent = fmt(fTotal);
+
+  // ---- Customs ----
+  const custPct  = parseFloat($("customsPct").value) || 0;
+  const custTotal = totalGoods * custPct / 100;
+  items.forEach(i => { i.customs = i.goods_ils * custPct / 100; });
+  $("customsILS").textContent = fmt(custTotal);
+
+  // ---- Insurance ----
+  const insPct   = parseFloat($("insurancePct").value) || 0;
+  const insTotal = totalGoods * insPct / 100;
+  items.forEach(i => { i.insurance = i.goods_ils * insPct / 100; });
+  $("insILS").textContent = fmt(insTotal);
+
+  // ---- Bank fee (% of goods) ----
+  const bankPct   = parseFloat($("bankPct").value) || 0;
+  const bankTotal = totalGoods * bankPct / 100;
+  items.forEach(i => { i.bank = i.goods_ils * bankPct / 100; });
+  $("bankILS").textContent = fmt(bankTotal);
+
+  // ---- Fixed costs (agent, local, extra) ---- allocate by goods value ratio
+  const FIXED = [
+    { id:"agent", valId:"agentVal", curId:"agentCur", ilsId:"agentILS" },
+    { id:"local", valId:"localVal", curId:"localCur", ilsId:"localILS" },
+    { id:"extra", valId:"extraVal", curId:"extraCur", ilsId:"extraILS" },
+  ];
+  let totalFixed = 0;
+  const fixedTotals = {};
+  FIXED.forEach(f => {
+    const v = parseFloat($(f.valId).value) || 0;
+    const c = $(f.curId).value;
+    fixedTotals[f.id] = v * (c === "ILS" ? 1 : rate);
+    totalFixed += fixedTotals[f.id];
+    $(f.ilsId).textContent = fmt(fixedTotals[f.id]);
+  });
+  items.forEach(i => {
+    i.other_fixed = totalGoods > 0
+      ? (i.goods_ils / totalGoods) * totalFixed
+      : totalFixed / items.length;
+  });
+
+  // ---- Per-item total ----
+  const marginPct = parseFloat($("marginPct").value) || 35;
+  items.forEach(i => {
+    i.total_extra  = i.freight + i.customs + i.insurance + i.recycling + i.bank + i.other_fixed;
+    i.total_landed = i.goods_ils + i.total_extra;
+    i.landed_per_tire = i.quantity > 0 ? i.total_landed / i.quantity : 0;
+    i.sell_price      = i.landed_per_tire * (1 + marginPct / 100);
+  });
+
+  const totalLanded = items.reduce((s,i) => s + i.total_landed, 0);
+  const avgPerTire  = totalQty > 0 ? totalLanded / totalQty : 0;
+  const totalExtras = fTotal + custTotal + insTotal + totalRecycle + bankTotal + totalFixed;
+
+  $("totalExtra").textContent = fmt(totalExtras) + " ₪";
+
+  // ---- Quick summary (top right) ----
+  const markupPct = totalGoods > 0 ? (totalExtras / totalGoods * 100) : 0;
+  $("rTotal").textContent  = totalLanded > 0 ? fmt(totalLanded) + " ₪" : "—";
+  $("rAvg").textContent    = avgPerTire  > 0 ? fmt(avgPerTire,1) + " ₪" : "—";
+  $("rSell").textContent   = avgPerTire  > 0 ? fmt(avgPerTire*(1+marginPct/100),1) + " ₪" : "—";
+  $("rMarkup").textContent = totalGoods  > 0 ? markupPct.toFixed(1) + "%" : "—";
+  $("sGoods").textContent   = totalGoods  > 0 ? fmt(totalGoods)  + " ₪" : "—";
+  $("sFreight").textContent = fmt(fTotal)     + " ₪";
+  $("sCustIns").textContent = fmt(custTotal + insTotal) + " ₪";
+  $("sRecycle").textContent = fmt(totalRecycle) + " ₪";
+  $("sOther").textContent   = fmt(totalFixed + bankTotal) + " ₪";
+
+  // ---- Results table ----
+  renderResults(items, totalLanded, totalQty, avgPerTire, markupPct, marginPct);
+
+  // ---- Save state ----
+  _result = {
+    invoice_number:  $("invoiceNum").value,
+    supplier:        $("supplier").value,
+    date:            $("invoiceDate").value,
+    currency:        $("currency").value,
+    exchange_rate:   rate,
+    profit_margin:   marginPct,
+
+    items: items.map(i => ({
+      model:      i.model,
+      size:       i.size,
+      quantity:   i.quantity,
+      unit_price: i.unit_price,
+      weight_kg:  i.weight_kg,
+    })),
+
+    extra_costs: {
+      freight:        { method: fMode, value: fVal, currency: fCur },
+      customs_pct:    custPct,
+      insurance_pct:  insPct,
+      customs_agent:  { value: parseFloat($("agentVal").value) || 0, currency: $("agentCur").value },
+      local_delivery: { value: parseFloat($("localVal").value) || 0, currency: $("localCur").value },
+      bank_fee_pct:   bankPct,
+      recycling_rate: RECYCLE,
+      extra:          { value: parseFloat($("extraVal").value) || 0, currency: $("extraCur").value },
+    },
+
+    results: {
+      total_landed_cost: Math.round(totalLanded),
+      avg_cost_per_tire: Math.round(avgPerTire * 10) / 10,
+      avg_sell_price:    Math.round(avgPerTire * (1 + marginPct / 100) * 10) / 10,
+      total_items:       totalQty,
+      total_weight_kg:   Math.round(totalWtKg * 10) / 10,
+      goods_ils:         Math.round(totalGoods),
+      total_extras_ils:  Math.round(totalExtras),
+      markup_pct:        Math.round(markupPct * 10) / 10,
+    },
+
+    // Legacy (backward-compat for updateInventory)
+    invoice_num:      $("invoiceNum").value,
+    goods_ils:        totalGoods,
+    total_landed_ils: totalLanded,
+    per_tire_ils:     avgPerTire,
+    sell_price_ils:   avgPerTire * (1 + marginPct / 100),
+    items_result:     items.map(i => ({...i})),
+  };
+
+  saveFormState();
+}
+
+function clearQuick() {
+  ["rTotal","rAvg","rSell","rMarkup","sGoods","sFreight","sCustIns","sRecycle","sOther",
+   "freightILS","customsILS","insILS","recycleAuto","recycleILS","agentILS","localILS","bankILS","extraILS",
+   "fQty","fWt","fWtTot","fGoods"].forEach(id => {
+    const e = $(id); if(e) e.textContent = "—";
+  });
+  $("totalExtra").textContent = "—";
+}
+
+// ══════════════ RESULTS TABLE ══════════════
+function renderResults(items, totalLanded, totalQty, avgPerTire, markupPct, marginPct) {
+  $("resultsPanel").style.display = "";
+  const tbody = $("rBody");
+  tbody.innerHTML = "";
+  items.forEach(i => {
+    const lbl = i.size || i.model || "—";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="c-size">${lbl}</td>
+      <td style="text-align:center;">${i.quantity}</td>
+      <td>${fmt(i.goods_ils)}</td>
+      <td>${fmt(i.freight,0)}</td>
+      <td>${fmt(i.customs,0)}</td>
+      <td>${fmt(i.insurance,0)}</td>
+      <td style="color:var(--green);">${fmt(i.recycling,0)}</td>
+      <td>${fmt(i.other_fixed+i.bank,0)}</td>
+      <td class="c-landed">${fmt(i.landed_per_tire,1)}</td>
+      <td class="c-sell">${fmt(i.sell_price,1)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  $("rFoot").innerHTML = `<tr>
+    <td class="c-size">סה"כ / ממוצע</td>
+    <td style="text-align:center;">${totalQty}</td>
+    <td>${fmt(items.reduce((s,i)=>s+i.goods_ils,0))}</td>
+    <td>${fmt(items.reduce((s,i)=>s+i.freight,0))}</td>
+    <td>${fmt(items.reduce((s,i)=>s+i.customs,0))}</td>
+    <td>${fmt(items.reduce((s,i)=>s+i.insurance,0))}</td>
+    <td style="color:var(--green);">${fmt(items.reduce((s,i)=>s+i.recycling,0))}</td>
+    <td>${fmt(items.reduce((s,i)=>s+i.other_fixed+i.bank,0))}</td>
+    <td class="c-landed">${fmt(avgPerTire,1)}</td>
+    <td class="c-sell">${fmt(avgPerTire*(1+marginPct/100),1)}</td>
+  </tr>`;
+
+  // Strip
+  $("sTotalLanded").textContent = fmt(totalLanded) + " ₪";
+  $("sAvgTire").textContent     = fmt(avgPerTire,1) + " ₪";
+  $("sAvgSell").textContent     = fmt(avgPerTire*(1+marginPct/100),1) + " ₪";
+}
+
+// ══════════════ SAVE ══════════════
+async function saveCalc() {
+  if (!_result?.goods_ils) { toast("הכנס נתוני חשבונית ופריטים", "err"); return; }
+  const res = await fetch("/landed-cost/save", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ calc: _result }),
+  });
+  const d = await res.json();
+  if (d.ok) {
+    toast("החישוב נשמר ✅");
+    $("saveStatus").textContent = "✓ " + new Date().toLocaleTimeString("he-IL");
+    await loadHistoryFromServer(); // רענן היסטוריה
+  } else {
+    toast(d.error || "שגיאה", "err");
+  }
+}
+
+async function updateInventory() {
+  if (!_result?.items_result?.length) { toast("אין נתונים לעדכון", "err"); return; }
+  const updates = _result.items_result
+    .filter(i => i.landed_per_tire > 0)
+    .map(i => ({
+      model:                 i.model  || "",
+      size:                  i.size   || "",
+      landed_cost_per_unit:  Math.round(i.landed_per_tire * 100) / 100,
+      recommended_price:     Math.round(i.sell_price      * 100) / 100,
+    }));
+  if (!updates.length) { toast("אין פריטים עם עלות נחיתה", "err"); return; }
+  try {
+    const res = await fetch("/api/landed-cost/update-inventory", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ updates }),
+    });
+    const d = await res.json();
+    if (!d.ok) { toast(d.error || "שגיאה בעדכון", "err"); return; }
+    let msg = `עודכנו ${d.updated} פריטים במלאי ✅`;
+    if (d.not_found?.length) {
+      msg += `\n⚠️ לא נמצאו במלאי: ${d.not_found.join(", ")}`;
+      toast(msg, "warn");
+    } else {
+      toast(msg);
+    }
+  } catch { toast("שגיאת רשת", "err"); }
+}
+
+async function saveTireSpecs() {
+  const items = getItems();
+  if (!items.length) { toast("אין פריטים", "err"); return; }
+  const specs = {};
+  items.forEach(i => { if (i.size) specs[i.size] = { weight_kg:i.weight_kg }; });
+  const res = await fetch("/api/tire-specs", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(specs),
+  });
+  const d = await res.json();
+  if (d.ok) { _specs={..._specs,...specs}; toast(`נשמרו ${Object.keys(specs).length} מידות`); }
+  else toast("שגיאה","err");
+}
+
+// ══════════════ AI ANALYSIS ══════════════
+async function runAI(input) {
+  if (!input.files?.[0]) return;
+  const file = input.files[0];
+  input.value = "";
+
+  _aiData = null;
+  $("aiImportBtn").style.display = "none";
+  $("aiSpin").style.display      = "inline-block";
+  $("aiTitle").textContent       = `🤖 מנתח: ${file.name} ...`;
+  $("aiBody").innerHTML          = `<div style="color:var(--text-dim); padding:10px 0;">שולח ל-Claude... ⏳</div>`;
+  $("aiPanel").classList.add("show");
+
+  const fd = new FormData();
+  fd.append("file", file);
+  try {
+    const res = await fetch("/api/landed-cost/analyze", { method:"POST", body:fd });
+    const d   = await res.json();
+    $("aiSpin").style.display = "none";
+    if (!d.ok) {
+      $("aiTitle").textContent = "🤖 שגיאה";
+      $("aiBody").innerHTML    = `<div class="alert alert-warning" style="margin:0;">⚠️ ${d.error}</div>`;
+      return;
+    }
+    _aiData = d.data;
+    $("aiTitle").textContent = `🤖 ניתוח: ${d.filename}`;
+    $("aiImportBtn").style.display = "";
+    renderAIResult(_aiData);
+  } catch (e) {
+    $("aiSpin").style.display = "none";
+    $("aiBody").innerHTML = `<div class="alert alert-warning" style="margin:0;">⚠️ ${e.message}</div>`;
+  }
+}
+
+function renderAIResult(d) {
+  const sym = SYM[d.currency] || d.currency || "";
+  const fields = [
+    ["מספר חשבונית", d.invoice_number || "—"],
+    ["ספק",          d.supplier || "—"],
+    ["תאריך",        d.date || "—"],
+    ["מטבע",         d.currency ? `${d.currency} ${sym}` : "—"],
+    ['סה"כ ערך',     d.total_value ? `${sym} ${Number(d.total_value).toLocaleString("he-IL")}` : "—"],
+    ["כמות יחידות",  d.total_quantity ? Number(d.total_quantity).toLocaleString("he-IL") : "—"],
+    ["פריטים",       d.items_count ?? (d.items?.length ?? "—")],
+  ];
+  let html = `<div style="display:grid; grid-template-columns:1fr 1fr; gap:0 20px; margin-bottom:12px;">`;
+  fields.forEach(([k,v]) => {
+    html += `<div class="ai-frow"><span class="ai-fkey">${k}</span><span class="ai-fval">${v}</span></div>`;
+  });
+  html += `</div>`;
+  if (d.items?.length) {
+    html += `<div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:5px;">פריטים (${d.items.length})</div>
+    <div style="overflow-x:auto; border:1px solid var(--border); border-radius:6px;">
+    <table class="ai-it"><thead><tr>
+      <th>מק"ט / דגם</th><th>מידה</th><th>כמות</th><th>מחיר יחידה</th>
+    </tr></thead><tbody>`;
+    d.items.forEach(it => {
+      html += `<tr>
+        <td style="font-family:monospace;">${it.model||"—"}</td><td>${it.size||"—"}</td>
+        <td style="text-align:center;">${it.quantity??"—"}</td>
+        <td style="font-family:monospace;">${sym} ${Number(it.unit_price||0).toFixed(2)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  $("aiBody").innerHTML = html;
+}
+
+async function importFromAI() {
+  if (!_aiData) return;
+  const d = _aiData;
+  if (d.invoice_number) $("invoiceNum").value  = d.invoice_number;
+  if (d.supplier)       $("supplier").value    = d.supplier;
+  if (d.date)           $("invoiceDate").value = d.date;
+  if (d.currency) {
+    const sel = $("currency"), uc = d.currency.toUpperCase();
+    if ([...sel.options].some(o=>o.value===uc)) { sel.value=uc; await fetchRate(); }
+  }
+  if (d.items?.length) {
+    $("itemsBody").innerHTML = "";
+    $("emptyMsg").style.display = "none";
+    _rowId = 0;
+    d.items.forEach(it => addRow(it));
+  }
+  closeAI();
+  toast(`יובאו ${d.items?.length||0} פריטים`);
+}
+
+function closeAI() { $("aiPanel").classList.remove("show"); _aiData=null; }
+
+// ══════════════ LOCAL STORAGE ══════════════
+const LS_KEY = "landed_cost_draft";
+
+function saveFormState() {
+  const items = getItems();
+  const state = {
+    invoice_num:   $("invoiceNum").value,
+    supplier:      $("supplier").value,
+    invoice_date:  $("invoiceDate").value,
+    currency:      $("currency").value,
+    exchange_rate: $("exRate").value,
+    margin_pct:    $("marginPct").value,
+    freight_mode:  $("freightMode").value,
+    freight_val:   $("freightVal").value,
+    freight_cur:   $("freightCur").value,
+    customs_pct:   $("customsPct").value,
+    insurance_pct: $("insurancePct").value,
+    bank_pct:      $("bankPct").value,
+    agent_val:     $("agentVal").value,  agent_cur: $("agentCur").value,
+    local_val:     $("localVal").value,  local_cur: $("localCur").value,
+    extra_val:     $("extraVal").value,  extra_cur: $("extraCur").value,
+    items,
+  };
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+}
+
+function loadFormState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (s.invoice_num)   $("invoiceNum").value   = s.invoice_num;
+    if (s.supplier)      $("supplier").value      = s.supplier;
+    if (s.invoice_date)  $("invoiceDate").value   = s.invoice_date;
+    if (s.currency)      $("currency").value      = s.currency;
+    if (s.exchange_rate) $("exRate").value        = s.exchange_rate;
+    if (s.margin_pct)    $("marginPct").value     = s.margin_pct;
+    if (s.freight_mode)  { $("freightMode").value = s.freight_mode; onFreightMode(); }
+    if (s.freight_val)   $("freightVal").value    = s.freight_val;
+    if (s.freight_cur)   $("freightCur").value    = s.freight_cur;
+    if (s.customs_pct)   $("customsPct").value    = s.customs_pct;
+    if (s.insurance_pct) $("insurancePct").value  = s.insurance_pct;
+    if (s.bank_pct)      $("bankPct").value       = s.bank_pct;
+    if (s.agent_val)     $("agentVal").value      = s.agent_val;
+    if (s.agent_cur)     $("agentCur").value      = s.agent_cur;
+    if (s.local_val)     $("localVal").value      = s.local_val;
+    if (s.local_cur)     $("localCur").value      = s.local_cur;
+    if (s.extra_val)     $("extraVal").value      = s.extra_val;
+    if (s.extra_cur)     $("extraCur").value      = s.extra_cur;
+    if (s.items?.length) {
+      $("itemsBody").innerHTML = "";
+      $("emptyMsg").style.display = "none";
+      _rowId = 0;
+      s.items.forEach(it => addRow(it));
+    }
+    return true;
+  } catch { return false; }
+}
+
+// ══════════════ HISTORY ══════════════
+let _history = [];
+
+async function loadHistoryFromServer() {
+  try {
+    const r = await fetch("/api/landed-cost/history");
+    _history = await r.json();
+    renderHistory();
+  } catch {}
+}
+
+function renderHistory() {
+  const section = $("historySection");
+  const body    = $("historyBody");
+  if (!_history.length) { section.style.display = "none"; return; }
+  section.style.display = "";
+  $("historyCount").textContent = _history.length;
+
+  body.innerHTML = _history.map((h, idx) => {
+    const ts     = (h.saved_at || "").slice(0, 16).replace("T", " ");
+    const invNum = h.invoice_number || h.invoice_num || "—";
+    const sup    = h.supplier || "";
+    const cur    = h.currency || "";
+    const perTire = h.results?.avg_cost_per_tire ?? h.per_tire_ils ?? 0;
+    const total   = h.results?.total_landed_cost  ?? h.total_landed_ils ?? 0;
+    return `
+    <div class="h-row" style="cursor:pointer; align-items:center;" onclick="loadFromHistory(${idx})"
+         title="לחץ לטעינת חישוב זה">
+      <span style="font-size:10px; color:var(--text-dim); min-width:110px;">${ts}</span>
+      <span style="font-weight:600; min-width:110px;">${invNum}</span>
+      <span style="color:var(--text-dim); min-width:100px; font-size:11px;">${sup}</span>
+      <span style="font-size:10px; background:var(--surface2); border:1px solid var(--border);
+                   border-radius:4px; padding:1px 6px;">${cur}</span>
+      <span style="color:var(--blue-light); font-family:monospace; font-size:12px;">
+        נחיתה: ${fmt(total)} ₪</span>
+      <span style="color:var(--orange-l); font-family:monospace; font-size:12px;">
+        לצמיג: ${fmt(perTire,1)} ₪</span>
+      <button onclick="event.stopPropagation(); deleteHistory(${idx})"
+        style="background:transparent; border:none; color:var(--red); cursor:pointer;
+               font-size:13px; padding:2px 6px; margin-right:auto;" title="מחק חישוב">🗑️</button>
+    </div>`;
+  }).join("");
+}
+
+async function deleteHistory(idx) {
+  const res = await fetch(`/api/landed-cost/history/${idx}`, { method:"DELETE" });
+  const d   = await res.json();
+  if (d.ok) { _history.splice(idx, 1); renderHistory(); toast("חישוב נמחק"); }
+  else toast(d.error || "שגיאת מחיקה", "err");
+}
+
+async function loadFromHistory(idx) {
+  const preview = _history[idx];
+  if (!preview) return;
+  const invNum = preview.invoice_number || preview.invoice_num || "";
+
+  // שלוף נתונים מלאים מהשרת
+  let h = preview;
+  if (invNum) {
+    try {
+      const res = await fetch(`/api/landed-cost/load/${encodeURIComponent(invNum)}`);
+      const d   = await res.json();
+      if (d.ok && d.data) h = d.data;
+    } catch {}
+  }
+
+  applyCalcData(h);
+}
+
+function applyCalcData(h, silent=false) {
+  // ── שדות כלליים ──────────────────────────────────────────────────────
+  $("invoiceNum").value  = h.invoice_number || h.invoice_num || "";
+  $("invoiceDate").value = h.date || h.invoice_date || "";
+  $("supplier").value    = h.supplier || "";
+  if (h.exchange_rate != null) $("exRate").value    = h.exchange_rate;
+  // profit_margin (new) או margin_pct (legacy)
+  const margin = h.profit_margin ?? h.margin_pct;
+  if (margin != null) $("marginPct").value = margin;
+  if (h.currency) {
+    const sel = $("currency");
+    if ([...sel.options].some(o => o.value === h.currency)) sel.value = h.currency;
+  }
+
+  // ── עלויות נוספות — תומך בפורמט חדש (nested) וישן (flat) ────────────
+  const ec = h.extra_costs;
+  if (ec) {
+    // הובלה
+    if (ec.freight && typeof ec.freight === "object") {
+      $("freightMode").value = ec.freight.method   || "kg";
+      $("freightVal").value  = ec.freight.value    || 0;
+      $("freightCur").value  = ec.freight.currency || "USD";
+    } else {
+      $("freightMode").value = ec.freight_mode || "kg";
+      $("freightVal").value  = ec.freight_val  || 0;
+      $("freightCur").value  = ec.freight_cur  || "USD";
+    }
+    // אחוזים
+    $("customsPct").value   = ec.customs_pct   ?? 0;
+    $("insurancePct").value = ec.insurance_pct ?? 0;
+    $("bankPct").value      = ec.bank_fee_pct  ?? ec.bank_pct ?? 0;
+    // סוכן מכס
+    if (ec.customs_agent && typeof ec.customs_agent === "object") {
+      $("agentVal").value = ec.customs_agent.value    || 0;
+      $("agentCur").value = ec.customs_agent.currency || "ILS";
+    } else {
+      $("agentVal").value = ec.agent_val || 0;
+      $("agentCur").value = ec.agent_cur || "ILS";
+    }
+    // הובלה מקומית
+    if (ec.local_delivery && typeof ec.local_delivery === "object") {
+      $("localVal").value = ec.local_delivery.value    || 0;
+      $("localCur").value = ec.local_delivery.currency || "ILS";
+    } else {
+      $("localVal").value = ec.local_val || 0;
+      $("localCur").value = ec.local_cur || "ILS";
+    }
+    // עלות נוספת
+    if (ec.extra && typeof ec.extra === "object") {
+      $("extraVal").value = ec.extra.value    || 0;
+      $("extraCur").value = ec.extra.currency || "ILS";
+    } else {
+      $("extraVal").value = ec.extra_val || 0;
+      $("extraCur").value = ec.extra_cur || "ILS";
+    }
+    onFreightMode();
+  }
+
+  // ── פריטים ───────────────────────────────────────────────────────────
+  const its = h.items || [];
+  if (its.length) {
+    $("itemsBody").innerHTML    = "";
+    $("emptyMsg").style.display = "none";
+    _rowId = 0;
+    its.forEach(it => addRow(it));
+  }
+
+  recalc();
+  saveFormState();
+  if (!silent) {
+    toast(`נטען: ${h.invoice_number || h.invoice_num || "חישוב"}`);
+    window.scrollTo({ top:0, behavior:"smooth" });
+  }
+}
+
+// ══════════════ LOAD LAST ══════════════
+async function loadLast() {
+  // עדיפות: החישוב האחרון שנשמר
+  if (_history.length) { loadFromHistory(0); return; }
+  // fallback: ייבוא אחרון מ-import_log
+  try {
+    const res = await fetch("/api/last-import");
+    const d   = await res.json();
+    if (!d.ok) { toast(d.message || "אין נתונים קודמים", "err"); return; }
+    if (d.filename)    $("invoiceNum").value  = d.filename.replace(/\.[^.]+$/, "");
+    if (d.supplier)    $("supplier").value    = d.supplier;
+    if (d.import_date) $("invoiceDate").value = d.import_date;
+    if (d.currency) {
+      const sel = $("currency"), uc = d.currency.toUpperCase();
+      if ([...sel.options].some(o => o.value === uc)) { sel.value = uc; await fetchRate(); }
+    }
+    recalc();
+    toast("נטען ייבוא אחרון: " + [d.filename, d.supplier].filter(Boolean).join(" · "));
+  } catch { toast("שגיאת רשת", "err"); }
+}
+
+// ══════════════ DEFAULTS (cost_defaults.json) ══════════════
+let _defaults = null;
+
+async function loadDefaults(applyToForm=true) {
+  try {
+    const r = await fetch("/api/cost-defaults");
+    _defaults = await r.json();
+    if (applyToForm) applyDefaultsToForm(_defaults);
+  } catch {}
+}
+
+function applyDefaultsToForm(d) {
+  if (!d) return;
+  if (d.freight_method)              { $("freightMode").value = d.freight_method; onFreightMode(); }
+  if (d.freight_value     != null)     $("freightVal").value  = d.freight_value;
+  if (d.freight_currency)              $("freightCur").value  = d.freight_currency;
+  if (d.customs_pct       != null)     $("customsPct").value   = d.customs_pct;
+  if (d.insurance_pct     != null)     $("insurancePct").value = d.insurance_pct;
+  if (d.customs_agent_value  != null)  $("agentVal").value    = d.customs_agent_value;
+  if (d.customs_agent_currency)        $("agentCur").value    = d.customs_agent_currency;
+  if (d.local_delivery_value != null)  $("localVal").value    = d.local_delivery_value;
+  if (d.local_delivery_currency)       $("localCur").value    = d.local_delivery_currency;
+  if (d.bank_fee_pct      != null)     $("bankPct").value     = d.bank_fee_pct;
+  if (d.profit_margin     != null)     $("marginPct").value   = d.profit_margin;
+  recalc();
+}
+
+function openDefaultsModal() {
+  // הצג ערכים נוכחיים בטופס המודל
+  const d = _defaults || {};
+  $("dfFreightMethod").value  = $("freightMode").value;
+  $("dfFreightValue").value   = $("freightVal").value;
+  $("dfFreightCurrency").value= $("freightCur").value;
+  $("dfCustomsPct").value     = $("customsPct").value;
+  $("dfInsurancePct").value   = $("insurancePct").value;
+  $("dfBankPct").value        = $("bankPct").value;
+  $("dfAgentValue").value     = $("agentVal").value;
+  $("dfAgentCurrency").value  = $("agentCur").value;
+  $("dfLocalValue").value     = $("localVal").value;
+  $("dfLocalCurrency").value  = $("localCur").value;
+  $("dfProfitMargin").value   = $("marginPct").value;
+  $("dfRecyclingRate").value  = d.recycling_rate ?? 590;
+  $("defaultsModal").classList.add("open");
+}
+
+function closeDefaultsModal() {
+  $("defaultsModal").classList.remove("open");
+}
+
+async function saveDefaults() {
+  const d = {
+    freight_method:           $("dfFreightMethod").value,
+    freight_value:            parseFloat($("dfFreightValue").value)   || 0,
+    freight_currency:         $("dfFreightCurrency").value,
+    customs_pct:              parseFloat($("dfCustomsPct").value)     || 0,
+    insurance_pct:            parseFloat($("dfInsurancePct").value)   || 0,
+    bank_fee_pct:             parseFloat($("dfBankPct").value)        || 0,
+    customs_agent_value:      parseFloat($("dfAgentValue").value)     || 0,
+    customs_agent_currency:   $("dfAgentCurrency").value,
+    local_delivery_value:     parseFloat($("dfLocalValue").value)     || 0,
+    local_delivery_currency:  $("dfLocalCurrency").value,
+    profit_margin:            parseFloat($("dfProfitMargin").value)   || 35,
+    recycling_rate:           parseFloat($("dfRecyclingRate").value)  || 590,
+  };
+  try {
+    const res = await fetch("/api/cost-defaults", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(d),
+    });
+    const r = await res.json();
+    if (r.ok) {
+      _defaults = d;
+      // סנכרן שדות טופס עם הגדרות שנשמרו
+      applyDefaultsToForm(d);
+      toast("ברירות מחדל נשמרו ✅");
+      closeDefaultsModal();
+    } else { toast("שגיאה בשמירה", "err"); }
+  } catch { toast("שגיאת רשת", "err"); }
+}
+
+async function resetToDefaults() {
+  await loadDefaults(true);
+  closeDefaultsModal();
+  toast("ברירות מחדל שוחזרו");
+}
+
+// ══════════════ AUTO-LOAD BANNER ══════════════
+function showAutoLoadBanner(h) {
+  const banner = $("autoloadBanner");
+  const invNum = h.invoice_number || h.invoice_num || "";
+  const date   = (h.date || h.invoice_date || h.saved_at || "").slice(0, 10);
+  const label  = [invNum && `חשבונית ${invNum}`, date && `מתאריך ${date}`].filter(Boolean).join(" ");
+  banner.className = "autoload-banner";
+  banner.innerHTML = `
+    <span>✓ נטען חישוב אחרון${label ? ": " + label : ""}</span>
+    <button onclick="this.parentElement.style.display='none'"
+      style="background:none; border:none; color:var(--blue-light); cursor:pointer; font-size:14px; padding:0 4px;">✕</button>
+  `;
+  banner.style.display = "";
+  setTimeout(() => { if (banner.style.display !== "none") banner.style.display = "none"; }, 8000);
+}
+
+// ══════════════ INIT ══════════════
+document.addEventListener("DOMContentLoaded", async () => {
+  // 1. טעינת specs
+  try { const r = await fetch("/api/tire-specs"); _specs = await r.json(); } catch {}
+
+  // 2. טעינת ברירות מחדל → מילוי שדות עלויות (baseline)
+  await loadDefaults(true);
+
+  // 3. שחזור מ-localStorage (מדרוס את ברירות המחדל אם קיים טיוטה)
+  const restored = loadFormState();
+  if (!restored) {
+    $("invoiceDate").value = new Date().toISOString().slice(0, 10);
+  }
+
+  // 4. טעינת היסטוריה
+  await loadHistoryFromServer();
+
+  // 5. אם אין טיוטה שמורה → טעון חישוב אחרון אוטומטית
+  if (!restored && _history.length > 0) {
+    applyCalcData(_history[0], true); // שקט — ללא toast
+    showAutoLoadBanner(_history[0]);
+  }
+
+  // 6. שליפת שער חליפין
+  fetchRate();
+});
+</script>
+{% endblock %}

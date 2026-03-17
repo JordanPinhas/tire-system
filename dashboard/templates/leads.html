@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}לידים - דשבורד צמיגים{% endblock %}
+{% block page_title %}ניהול לידים{% endblock %}
+{% block breadcrumb %}לידים ומכירות{% endblock %}
+
+{% block content %}
+
+<!-- כרטיסי סטטוס -->
+<div class="stat-grid" style="margin-bottom: 20px;">
+  <div class="stat-card orange">
+    <div class="stat-icon">🆕</div>
+    <div class="stat-value">{{ status_counts.get('חדש', 0) }}</div>
+    <div class="stat-label">לידים חדשים</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon">🔄</div>
+    <div class="stat-value">{{ status_counts.get('בטיפול', 0) }}</div>
+    <div class="stat-label">בטיפול</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon">✅</div>
+    <div class="stat-value">{{ status_counts.get('סגור', 0) }}</div>
+    <div class="stat-label">נסגרו</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon">❌</div>
+    <div class="stat-value">{{ status_counts.get('אבוד', 0) }}</div>
+    <div class="stat-label">אבדו</div>
+  </div>
+</div>
+
+<!-- סרגל סינון -->
+<div class="filter-bar">
+  <a href="/leads" class="filter-btn {% if not active_filter %}active{% endif %}">
+    הכל ({{ all_count }})
+  </a>
+  <a href="/leads?status=חדש" class="filter-btn {% if active_filter == 'חדש' %}active{% endif %}">
+    חדש ({{ status_counts.get('חדש', 0) }})
+  </a>
+  <a href="/leads?status=בטיפול" class="filter-btn {% if active_filter == 'בטיפול' %}active{% endif %}">
+    בטיפול ({{ status_counts.get('בטיפול', 0) }})
+  </a>
+  <a href="/leads?status=סגור" class="filter-btn {% if active_filter == 'סגור' %}active{% endif %}">
+    סגור ({{ status_counts.get('סגור', 0) }})
+  </a>
+  <a href="/leads?status=אבוד" class="filter-btn {% if active_filter == 'אבוד' %}active{% endif %}">
+    אבוד ({{ status_counts.get('אבוד', 0) }})
+  </a>
+</div>
+
+<!-- טבלת לידים -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">
+      👥 לידים
+      {% if active_filter %}<span class="text-dim" style="font-weight:400;"> — {{ active_filter }}</span>{% endif %}
+      <span class="text-dim" style="font-weight:400; margin-right:6px;">({{ leads|length }})</span>
+    </span>
+  </div>
+  <div class="panel-body table-wrap">
+    {% if leads %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>שם</th>
+          <th>טלפון</th>
+          <th>סוג לקוח</th>
+          <th>עניין</th>
+          <th>הערות</th>
+          <th>סטטוס</th>
+          <th>עדכון סטטוס</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lead in leads %}
+        <tr>
+          <td class="text-dim">{{ lead.id }}</td>
+          <td class="fw-bold">{{ lead.name }}</td>
+          <td>
+            <a href="tel:{{ lead.phone }}" style="color: var(--blue-light); text-decoration: none;">
+              {{ lead.phone }}
+            </a>
+          </td>
+          <td>
+            {% if lead.customer_type == 'ציי' %}
+              <span class="badge badge-purple">{{ lead.customer_type }}</span>
+            {% elif lead.customer_type == 'מוסך' %}
+              <span class="badge badge-blue">{{ lead.customer_type }}</span>
+            {% elif lead.customer_type == 'קמעונאי' %}
+              <span class="badge badge-orange">{{ lead.customer_type }}</span>
+            {% else %}
+              <span class="badge badge-gray">{{ lead.customer_type }}</span>
+            {% endif %}
+          </td>
+          <td style="max-width: 220px;">
+            <span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ lead.interest }}">
+              {{ lead.interest }}
+            </span>
+          </td>
+          <td class="text-dim" style="font-size: 12px;">{{ lead.notes or '—' }}</td>
+          <td>
+            {% if lead.status == 'חדש' %}
+              <span class="badge badge-orange">🆕 חדש</span>
+            {% elif lead.status == 'בטיפול' %}
+              <span class="badge badge-blue">🔄 בטיפול</span>
+            {% elif lead.status == 'סגור' %}
+              <span class="badge badge-green">✅ סגור</span>
+            {% elif lead.status == 'אבוד' %}
+              <span class="badge badge-red">❌ אבוד</span>
+            {% else %}
+              <span class="badge badge-gray">{{ lead.status }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="POST" action="/api/leads/{{ lead.id }}/status"
+                  style="display:flex; gap:6px; align-items:center;">
+              <select name="status">
+                <option value="חדש"    {% if lead.status == 'חדש'    %}selected{% endif %}>חדש</option>
+                <option value="בטיפול" {% if lead.status == 'בטיפול' %}selected{% endif %}>בטיפול</option>
+                <option value="סגור"   {% if lead.status == 'סגור'   %}selected{% endif %}>סגור</option>
+                <option value="אבוד"   {% if lead.status == 'אבוד'   %}selected{% endif %}>אבוד</option>
+              </select>
+              <button type="submit" class="btn-sm btn-primary">עדכן</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="icon">👥</div>
+        <div>אין לידים{% if active_filter %} עם סטטוס "{{ active_filter }}"{% endif %}</div>
+        {% if active_filter %}
+          <a href="/leads" class="filter-btn" style="margin-top:12px; display:inline-block;">הצג הכל</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

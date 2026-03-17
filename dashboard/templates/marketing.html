@@ -1,0 +1,1405 @@
+{% extends "base.html" %}
+{% block title %}סטודיו שיווקי - דשבורד צמיגים{% endblock %}
+{% block page_title %}🎨 סטודיו שיווקי{% endblock %}
+{% block breadcrumb %}יצירת תמונות שיווקיות עם Google Imagen 4 / Gemini AI{% endblock %}
+
+{% block content %}
+<style>
+  .studio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+  .studio-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .studio-card-header {
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .studio-card-icon { font-size: 22px; }
+  .studio-card-title { font-size: 14px; font-weight: 700; }
+  .studio-card-sub   { font-size: 11px; color: var(--text-dim); }
+  .studio-card-body  { padding: 16px 18px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+  .field-row { display: flex; flex-direction: column; gap: 4px; }
+  .field-label { font-size: 11px; color: var(--text-dim); font-weight: 600; }
+  .field-input, .field-textarea, .field-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    direction: rtl;
+    outline: none;
+    width: 100%;
+  }
+  .field-input:focus, .field-textarea:focus, .field-select:focus {
+    border-color: var(--purple);
+  }
+  .field-textarea { resize: vertical; min-height: 72px; }
+
+  .btn-generate {
+    margin-top: 4px;
+    width: 100%;
+    padding: 10px;
+    border-radius: 7px;
+    border: none;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-generate:hover   { opacity: .88; }
+  .btn-generate:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* preview area */
+  .preview-area {
+    display: none;
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  .preview-area.visible { display: block; }
+  .preview-img {
+    width: 100%;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    object-fit: contain;
+    max-height: 280px;
+  }
+  .preview-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .btn-dl {
+    flex: 1;
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(168,85,247,.4);
+    color: #c084fc;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: center;
+    text-decoration: none;
+    transition: background .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .btn-dl:hover { background: rgba(168,85,247,.12); }
+
+  .status-msg {
+    font-size: 12px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    margin-top: 8px;
+    display: none;
+  }
+  .status-msg.loading { display: block; background: rgba(59,130,246,.1); color: #60a5fa; border: 1px solid rgba(59,130,246,.25); }
+  .status-msg.error   { display: block; background: rgba(239,68,68,.1); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+  .status-msg.ok      { display: block; background: rgba(34,197,94,.08); color: #4ade80; border: 1px solid rgba(34,197,94,.25); }
+
+  /* spinner */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* gallery */
+  .gallery-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .gallery-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .gallery-title { font-size: 14px; font-weight: 700; }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 16px;
+  }
+  .gallery-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s;
+    position: relative;
+  }
+  .gallery-item:hover { border-color: var(--purple); }
+  .gallery-item img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+  }
+  .gallery-item-info {
+    padding: 6px 8px;
+    font-size: 10px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+  }
+  .gallery-item-actions {
+    display: flex;
+    gap: 4px;
+    padding: 4px 8px 6px;
+  }
+  .gal-btn {
+    flex: 1; padding: 3px 0; border-radius: 4px; border: none;
+    font-size: 10px; cursor: pointer; font-family: inherit; font-weight: 600;
+  }
+  .gal-btn-dl  { background: rgba(168,85,247,.2); color: #c084fc; }
+  .gal-btn-del { background: rgba(239,68,68,.15); color: #f87171; }
+
+  .empty-gallery { padding: 40px 20px; text-align: center; color: var(--text-dim); font-size: 13px; }
+
+  /* toast notification */
+  .toast-notification {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 4000;
+    opacity: 0;
+    transition: opacity .3s, transform .3s;
+    max-width: 480px;
+    text-align: center;
+    direction: rtl;
+    box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  }
+  .toast-notification.toast-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast-success { background: #166534; color: #bbf7d0; border: 1px solid #15803d; }
+  .toast-error   { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
+
+  /* modal lightbox */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 3000;
+    background: rgba(0,0,0,.85);
+    align-items: center; justify-content: center;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; object-fit: contain; }
+  .lightbox-close {
+    position: fixed; top: 16px; left: 16px;
+    background: rgba(0,0,0,.6); color: #fff; border: none;
+    font-size: 24px; width: 40px; height: 40px; border-radius: 50%;
+    cursor: pointer; line-height: 1;
+  }
+</style>
+
+<!-- info bar -->
+<div class="alert alert-info" style="margin-bottom:16px;">
+  🎨 <strong>סטודיו שיווקי</strong> — שלב 1: AI יוצר תמונה ויזואלית ללא טקסט | שלב 2: Pillow מוסיף טקסט עברי מדויק. נדרש <code>GOOGLE_API_KEY</code> ב-.env
+</div>
+
+<!-- mode toggle -->
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+  <button id="toggle-mode" onclick="toggleMode()"
+          style="background:#7C3AED; color:white; padding:8px 20px; border-radius:20px; border:none; cursor:pointer; font-size:13px; font-weight:700; font-family:inherit; transition:background .2s;">
+    🎯 עבור למצב מקצועי
+  </button>
+  <small style="color:#aaa;" id="mode-description">מצב פשוט — תיאור אחד בעברית, AI עושה הכל</small>
+</div>
+
+<!-- 4 creation cards -->
+<div class="studio-grid">
+
+  <!-- Card 1: Facebook / Instagram -->
+  <div class="studio-card">
+    <div class="studio-card-header">
+      <span class="studio-card-icon">📢</span>
+      <div>
+        <div class="studio-card-title">מודעה פייסבוק / אינסטגרם</div>
+        <div class="studio-card-sub">פוסט ריבועי 1:1</div>
+      </div>
+    </div>
+    <div class="studio-card-body">
+      <!-- מצב פשוט -->
+      <div class="simple-mode">
+        <div class="field-row">
+          <span class="field-label">תיאור המודעה</span>
+          <textarea class="field-textarea" id="fb-simple"
+            placeholder="למשל: מבצע חורף — 4 צמיגי Michelin במחיר של 3, רקע שלג ורכב ספורט"></textarea>
+        </div>
+      </div>
+      <!-- מצב מקצועי -->
+      <div class="pro-mode" style="display:none">
+        <div class="field-row">
+          <span class="field-label">תיאור ויזואלי (באנגלית)</span>
+          <textarea class="field-textarea" id="fb-visual"
+            placeholder="e.g.: Winter tire sale, sports car on snowy road, dark blue background"></textarea>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:2px;">
+          <div style="font-size:10px; color:var(--text-dim); font-weight:700; margin-bottom:6px;">🇮🇱 טקסט עברי על התמונה (אופציונלי)</div>
+          <div class="field-row">
+            <span class="field-label">כותרת ראשית</span>
+            <input class="field-input" id="fb-title" placeholder="מבצע חורף">
+          </div>
+          <div class="field-row">
+            <span class="field-label">תת-כותרת</span>
+            <input class="field-input" id="fb-subtitle" placeholder="4 צמיגים במחיר של 3">
+          </div>
+          <div class="field-row">
+            <span class="field-label">טקסט נוסף</span>
+            <input class="field-input" id="fb-extra" placeholder="משלוח חינם לכל הארץ">
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-label">סגנון</span>
+          <select class="field-select" id="fb-style">
+            <option>מודעה מקצועית</option>
+            <option>מינימליסטי</option>
+            <option>דינמי ואנרגטי</option>
+            <option>אלגנטי</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">מודל AI</span>
+        <select class="field-select" id="fb-model">
+          <optgroup label="🖼️ Google Imagen 4 — ויזואל מושלם, ללא טקסט עברי">
+            <option value="imagen-4.0-generate-001">Imagen 4 ⭐ — עיצוב מקצועי</option>
+            <option value="imagen-4.0-ultra-generate-001">Imagen 4 Ultra 🏆 — הכי איכותי</option>
+            <option value="imagen-4.0-fast-generate-001">Imagen 4 Fast ⚡ — מהיר</option>
+          </optgroup>
+          <optgroup label="🍌 Nano Banana — תומך עברית מלאה">
+            <option value="gemini-3.1-flash-image-preview" selected>Nano Banana 2 ✅ עברית</option>
+            <option value="gemini-3-pro-image-preview">Nano Banana Pro ✅ עברית</option>
+            <option value="gemini-2.5-flash-image">Gemini 2.5 Flash ✅ עברית</option>
+          </optgroup>
+          <optgroup label="🎨 עריכה ידנית">
+            <option value="canva">Canva — פתח עורך</option>
+          </optgroup>
+        </select>
+        <small style="color:#888; font-size:10px; margin-top:4px; display:block; text-align:right;">
+          💡 לטקסט עברי — בחר Nano Banana | לעיצוב ויזואלי מקצועי — בחר Imagen 4
+        </small>
+      </div>
+      <button class="btn-generate" onclick="generate('fb')">✨ צור תמונה</button>
+      <div class="status-msg" id="fb-status"></div>
+      <div class="preview-area" id="fb-preview">
+        <img class="preview-img" id="fb-img" src="" alt="תמונה שנוצרה">
+        <div class="preview-actions">
+          <a class="btn-dl" id="fb-dl" href="#" download>⬇ הורד</a>
+          <button class="btn-dl" onclick="openLightbox(document.getElementById('fb-img').src)">🔍 הגדל</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Story -->
+  <div class="studio-card">
+    <div class="studio-card-header">
+      <span class="studio-card-icon">📱</span>
+      <div>
+        <div class="studio-card-title">סטורי אינסטגרם / פייסבוק</div>
+        <div class="studio-card-sub">אנכי 9:16</div>
+      </div>
+    </div>
+    <div class="studio-card-body">
+      <!-- מצב פשוט -->
+      <div class="simple-mode">
+        <div class="field-row">
+          <span class="field-label">הודעה לסטורי</span>
+          <textarea class="field-textarea" id="story-simple"
+            placeholder="למשל: החלפת צמיגים בחינם למוסכים חדשים! התקשרו עכשיו"></textarea>
+        </div>
+      </div>
+      <!-- מצב מקצועי -->
+      <div class="pro-mode" style="display:none">
+        <div class="field-row">
+          <span class="field-label">תיאור ויזואלי (באנגלית)</span>
+          <textarea class="field-textarea" id="story-visual"
+            placeholder="e.g.: Tire mechanic working, workshop background, orange lighting"></textarea>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:2px;">
+          <div style="font-size:10px; color:var(--text-dim); font-weight:700; margin-bottom:6px;">🇮🇱 טקסט עברי על התמונה (אופציונלי)</div>
+          <div class="field-row">
+            <span class="field-label">כותרת ראשית</span>
+            <input class="field-input" id="story-title" placeholder="מוסכים — מבצע מיוחד!">
+          </div>
+          <div class="field-row">
+            <span class="field-label">תת-כותרת</span>
+            <input class="field-input" id="story-subtitle" placeholder="החלפת צמיגים בחינם">
+          </div>
+          <div class="field-row">
+            <span class="field-label">טקסט נוסף</span>
+            <input class="field-input" id="story-extra" placeholder="התקשרו עכשיו">
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-label">סגנון</span>
+          <select class="field-select" id="story-style">
+            <option>צבעוני ובולט</option>
+            <option>מינימליסטי</option>
+            <option>גרדיאנט</option>
+            <option>אנרגטי</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">מודל AI</span>
+        <select class="field-select" id="story-model">
+          <optgroup label="🖼️ Google Imagen 4 — ויזואל מושלם, ללא טקסט עברי">
+            <option value="imagen-4.0-generate-001">Imagen 4 ⭐ — עיצוב מקצועי</option>
+            <option value="imagen-4.0-ultra-generate-001">Imagen 4 Ultra 🏆 — הכי איכותי</option>
+            <option value="imagen-4.0-fast-generate-001">Imagen 4 Fast ⚡ — מהיר</option>
+          </optgroup>
+          <optgroup label="🍌 Nano Banana — תומך עברית מלאה">
+            <option value="gemini-3.1-flash-image-preview" selected>Nano Banana 2 ✅ עברית</option>
+            <option value="gemini-3-pro-image-preview">Nano Banana Pro ✅ עברית</option>
+            <option value="gemini-2.5-flash-image">Gemini 2.5 Flash ✅ עברית</option>
+          </optgroup>
+          <optgroup label="🎨 עריכה ידנית">
+            <option value="canva">Canva — פתח עורך</option>
+          </optgroup>
+        </select>
+        <small style="color:#888; font-size:10px; margin-top:4px; display:block; text-align:right;">
+          💡 לטקסט עברי — בחר Nano Banana | לעיצוב ויזואלי מקצועי — בחר Imagen 4
+        </small>
+      </div>
+      <button class="btn-generate" onclick="generate('story')">✨ צור תמונה</button>
+      <div class="status-msg" id="story-status"></div>
+      <div class="preview-area" id="story-preview">
+        <img class="preview-img" id="story-img" src="" alt="תמונה שנוצרה">
+        <div class="preview-actions">
+          <a class="btn-dl" id="story-dl" href="#" download>⬇ הורד</a>
+          <button class="btn-dl" onclick="openLightbox(document.getElementById('story-img').src)">🔍 הגדל</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3: Flyer -->
+  <div class="studio-card">
+    <div class="studio-card-header">
+      <span class="studio-card-icon">📄</span>
+      <div>
+        <div class="studio-card-title">פלייר פרסומי</div>
+        <div class="studio-card-sub">תמונה + טקסט עברי מוטבע</div>
+      </div>
+    </div>
+    <div class="studio-card-body">
+      <!-- מצב פשוט -->
+      <div class="simple-mode">
+        <div class="field-row">
+          <span class="field-label">תוכן הפלייר</span>
+          <textarea class="field-textarea" id="flyer-simple"
+            placeholder="למשל: פלייר מבצע קיץ — 4 צמיגים ב-1,490 ₪, התקנה חינם, טל׳ 04-8000001"></textarea>
+        </div>
+      </div>
+      <!-- מצב מקצועי -->
+      <div class="pro-mode" style="display:none">
+        <div class="field-row">
+          <span class="field-label">תיאור ויזואלי (באנגלית)</span>
+          <textarea class="field-textarea" id="flyer-visual"
+            placeholder="e.g.: Truck tires stacked in warehouse, dark blue background, orange accents"></textarea>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:2px;">
+          <div style="font-size:10px; color:var(--text-dim); font-weight:700; margin-bottom:6px;">🇮🇱 טקסט עברי על הפלייר</div>
+          <div class="field-row">
+            <span class="field-label">כותרת ראשית</span>
+            <input class="field-input" id="flyer-title" placeholder="מבצע עונת הקיץ">
+          </div>
+          <div class="field-row">
+            <span class="field-label">הצעה מיוחדת</span>
+            <input class="field-input" id="flyer-subtitle" placeholder="4 צמיגים ב-1,490 ₪ + התקנה חינם">
+          </div>
+          <div class="field-row">
+            <span class="field-label">טלפון / מידע נוסף</span>
+            <input class="field-input" id="flyer-extra" placeholder="04-8000001" dir="ltr">
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-label">סגנון</span>
+          <select class="field-select" id="flyer-style">
+            <option>מודרני</option>
+            <option>קלאסי</option>
+            <option>בולט וצועק</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">מודל AI</span>
+        <select class="field-select" id="flyer-model">
+          <optgroup label="🖼️ Google Imagen 4 — ויזואל מושלם, ללא טקסט עברי">
+            <option value="imagen-4.0-generate-001">Imagen 4 ⭐ — עיצוב מקצועי</option>
+            <option value="imagen-4.0-ultra-generate-001">Imagen 4 Ultra 🏆 — הכי איכותי</option>
+            <option value="imagen-4.0-fast-generate-001">Imagen 4 Fast ⚡ — מהיר</option>
+          </optgroup>
+          <optgroup label="🍌 Nano Banana — תומך עברית מלאה">
+            <option value="gemini-3.1-flash-image-preview" selected>Nano Banana 2 ✅ עברית</option>
+            <option value="gemini-3-pro-image-preview">Nano Banana Pro ✅ עברית</option>
+            <option value="gemini-2.5-flash-image">Gemini 2.5 Flash ✅ עברית</option>
+          </optgroup>
+          <optgroup label="🎨 עריכה ידנית">
+            <option value="canva">Canva — פתח עורך</option>
+          </optgroup>
+        </select>
+        <small style="color:#888; font-size:10px; margin-top:4px; display:block; text-align:right;">
+          💡 לטקסט עברי — בחר Nano Banana | לעיצוב ויזואלי מקצועי — בחר Imagen 4
+        </small>
+      </div>
+      <button class="btn-generate" onclick="generate('flyer')">✨ צור פלייר</button>
+      <div class="status-msg" id="flyer-status"></div>
+      <div class="preview-area" id="flyer-preview">
+        <img class="preview-img" id="flyer-img" src="" alt="תמונה שנוצרה">
+        <div class="preview-actions">
+          <a class="btn-dl" id="flyer-dl" href="#" download>⬇ הורד</a>
+          <button class="btn-dl" onclick="openLightbox(document.getElementById('flyer-img').src)">🔍 הגדל</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 4: Banner / Sponsored -->
+  <div class="studio-card">
+    <div class="studio-card-header">
+      <span class="studio-card-icon">🎯</span>
+      <div>
+        <div class="studio-card-title">באנר / מודעה ממומנת</div>
+        <div class="studio-card-sub">רוחבי 16:9</div>
+      </div>
+    </div>
+    <div class="studio-card-body">
+      <!-- מצב פשוט -->
+      <div class="simple-mode">
+        <div class="field-row">
+          <span class="field-label">תיאור הקמפיין</span>
+          <textarea class="field-textarea" id="banner-simple"
+            placeholder="למשל: מבצע ציים — Bridgestone מחיר מפעל לחברות עם 10+ רכבים"></textarea>
+        </div>
+      </div>
+      <!-- מצב מקצועי -->
+      <div class="pro-mode" style="display:none">
+        <div class="field-row">
+          <span class="field-label">תיאור ויזואלי (באנגלית)</span>
+          <textarea class="field-textarea" id="banner-visual"
+            placeholder="e.g.: Fleet of trucks at a tire depot, industrial setting, dusk lighting"></textarea>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:2px;">
+          <div style="font-size:10px; color:var(--text-dim); font-weight:700; margin-bottom:6px;">🇮🇱 טקסט עברי על התמונה (אופציונלי)</div>
+          <div class="field-row">
+            <span class="field-label">כותרת ראשית</span>
+            <input class="field-input" id="banner-title" placeholder="מבצע ציים — הנחת נפח">
+          </div>
+          <div class="field-row">
+            <span class="field-label">תת-כותרת</span>
+            <input class="field-input" id="banner-subtitle" placeholder="Bridgestone מחיר מפעל">
+          </div>
+          <div class="field-row">
+            <span class="field-label">טקסט נוסף</span>
+            <input class="field-input" id="banner-extra" placeholder="לחברות עם 10+ רכבים">
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-label">קהל יעד</span>
+          <select class="field-select" id="banner-audience">
+            <option value="עסקי">עסקי (מוסכים, ציים)</option>
+            <option value="פרטי">פרטי (בעלי רכב)</option>
+            <option value="קמעונאי">קמעונאי</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">מודל AI</span>
+        <select class="field-select" id="banner-model">
+          <optgroup label="🖼️ Google Imagen 4 — ויזואל מושלם, ללא טקסט עברי">
+            <option value="imagen-4.0-generate-001">Imagen 4 ⭐ — עיצוב מקצועי</option>
+            <option value="imagen-4.0-ultra-generate-001">Imagen 4 Ultra 🏆 — הכי איכותי</option>
+            <option value="imagen-4.0-fast-generate-001">Imagen 4 Fast ⚡ — מהיר</option>
+          </optgroup>
+          <optgroup label="🍌 Nano Banana — תומך עברית מלאה">
+            <option value="gemini-3.1-flash-image-preview" selected>Nano Banana 2 ✅ עברית</option>
+            <option value="gemini-3-pro-image-preview">Nano Banana Pro ✅ עברית</option>
+            <option value="gemini-2.5-flash-image">Gemini 2.5 Flash ✅ עברית</option>
+          </optgroup>
+          <optgroup label="🎨 עריכה ידנית">
+            <option value="canva">Canva — פתח עורך</option>
+          </optgroup>
+        </select>
+        <small style="color:#888; font-size:10px; margin-top:4px; display:block; text-align:right;">
+          💡 לטקסט עברי — בחר Nano Banana | לעיצוב ויזואלי מקצועי — בחר Imagen 4
+        </small>
+      </div>
+      <button class="btn-generate" onclick="generate('banner')">✨ צור באנר</button>
+      <div class="status-msg" id="banner-status"></div>
+      <div class="preview-area" id="banner-preview">
+        <img class="preview-img" id="banner-img" src="" alt="תמונה שנוצרה">
+        <div class="preview-actions">
+          <a class="btn-dl" id="banner-dl" href="#" download>⬇ הורד</a>
+          <button class="btn-dl" onclick="openLightbox(document.getElementById('banner-img').src)">🔍 הגדל</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Model info table -->
+<div class="gallery-section" style="margin-bottom:20px;">
+  <div class="gallery-header">
+    <span class="gallery-title">📊 השוואת מודלים</span>
+  </div>
+  <div style="overflow-x:auto; padding:16px;">
+    <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:right;">
+      <thead>
+        <tr style="background:var(--surface2); color:var(--text-dim);">
+          <th style="padding:8px 12px; border-bottom:1px solid var(--border);">מודל</th>
+          <th style="padding:8px 12px; border-bottom:1px solid var(--border);">איכות</th>
+          <th style="padding:8px 12px; border-bottom:1px solid var(--border);">מחיר</th>
+          <th style="padding:8px 12px; border-bottom:1px solid var(--border);">מהירות</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px 12px;">Imagen 4 Fast ⚡</td>
+          <td style="padding:8px 12px;">⭐⭐⭐</td>
+          <td style="padding:8px 12px; color:#4ade80;">חינם / זול</td>
+          <td style="padding:8px 12px;">⚡⚡⚡</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border); background:rgba(168,85,247,.05);">
+          <td style="padding:8px 12px; font-weight:700;">Imagen 4 ⭐ <span style="font-size:10px;color:var(--purple);">מומלץ</span></td>
+          <td style="padding:8px 12px;">⭐⭐⭐⭐</td>
+          <td style="padding:8px 12px;">~15 אג'</td>
+          <td style="padding:8px 12px;">⚡⚡</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px 12px;">Imagen 4 Ultra 🏆</td>
+          <td style="padding:8px 12px;">⭐⭐⭐⭐⭐</td>
+          <td style="padding:8px 12px;">~30 אג'</td>
+          <td style="padding:8px 12px;">⚡</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px 12px;">Nano Banana 2 🍌</td>
+          <td style="padding:8px 12px;">⭐⭐⭐</td>
+          <td style="padding:8px 12px; color:#4ade80;">חינם (מוגבל)</td>
+          <td style="padding:8px 12px;">⚡⚡</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;">Canva 🎨</td>
+          <td style="padding:8px 12px;">✏️ ידני</td>
+          <td style="padding:8px 12px; color:#4ade80;">חינם</td>
+          <td style="padding:8px 12px;">מיידי</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Gallery -->
+<div class="gallery-section">
+  <div class="gallery-header">
+    <span class="gallery-title">🖼 גלריית תמונות שנוצרו</span>
+    <button class="btn-sm btn-primary" onclick="loadGallery()">🔄 רענן</button>
+  </div>
+  <div id="gallery-body">
+    <div class="empty-gallery">טוען גלריה...</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- קמפיינים - Human-in-the-Loop                                     -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+
+<style>
+  .camp-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .camp-panel-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .camp-panel-title { font-size: 14px; font-weight: 700; }
+  .camp-panel-body  { padding: 18px 20px; }
+
+  .camp-field-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .camp-label { font-size: 11px; color: var(--text-dim); font-weight: 600; }
+  .camp-input, .camp-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    direction: rtl;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .camp-input:focus, .camp-select:focus { border-color: var(--blue); }
+
+  .camp-checkboxes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .camp-check-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface2);
+    transition: border-color .15s;
+    user-select: none;
+  }
+  .camp-check-label:hover { border-color: var(--blue); }
+  .camp-check-label input { accent-color: var(--blue); }
+
+  .btn-camp-create {
+    width: 100%;
+    padding: 11px;
+    border-radius: 7px;
+    border: none;
+    background: linear-gradient(135deg, var(--blue), #2563eb);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity .15s;
+    margin-top: 4px;
+  }
+  .btn-camp-create:hover    { opacity: .88; }
+  .btn-camp-create:disabled { opacity: .45; cursor: not-allowed; }
+
+  .camp-status {
+    margin-top: 10px;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: none;
+  }
+  .camp-status.loading { display: block; background: rgba(59,130,246,.1); color: #60a5fa; border: 1px solid rgba(59,130,246,.25); }
+  .camp-status.ok      { display: block; background: rgba(34,197,94,.08); color: #4ade80; border: 1px solid rgba(34,197,94,.25); }
+  .camp-status.error   { display: block; background: rgba(239,68,68,.1); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+
+  .camp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .camp-row:last-child { border-bottom: none; }
+  .camp-row-info { flex: 1; min-width: 0; }
+  .camp-row-topic { font-weight: 700; font-size: 13px; }
+  .camp-row-meta  { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+  .camp-row-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .badge-waiting  { background: rgba(251,191,36,.15); color: #fbbf24; border: 1px solid rgba(251,191,36,.3); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; margin-right: 6px; }
+  .badge-published{ background: rgba(34,197,94,.12);  color: #4ade80; border: 1px solid rgba(34,197,94,.25); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; margin-right: 6px; }
+  .badge-rejected { background: rgba(239,68,68,.12);  color: #f87171; border: 1px solid rgba(239,68,68,.25); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; margin-right: 6px; }
+
+  /* preview modal */
+  .camp-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+  }
+  .camp-modal-overlay.open { display: flex; }
+  .camp-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: min(820px, 92vw);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .camp-modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .camp-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 640px) { .camp-modal-body { grid-template-columns: 1fr; } }
+  .camp-modal-section-title { font-size: 12px; font-weight: 700; color: var(--text-dim); margin-bottom: 8px; }
+  .camp-modal-text {
+    white-space: pre-wrap;
+    font-size: 12px;
+    line-height: 1.65;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 12px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .camp-modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .camp-reject-input {
+    flex: 1;
+    min-width: 160px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    direction: rtl;
+    outline: none;
+  }
+  .camp-reject-input:focus { border-color: var(--red); }
+</style>
+
+<!-- סקשן 1: יצירת קמפיין חדש -->
+<div class="camp-panel">
+  <div class="camp-panel-header">
+    <span class="camp-panel-title">✨ צור קמפיין חדש (Human-in-the-Loop)</span>
+  </div>
+  <div class="camp-panel-body">
+    <div class="camp-field-row">
+      <span class="camp-label">נושא הקמפיין</span>
+      <input type="text" id="camp-topic" class="camp-input"
+             placeholder="למשל: מבצע חילוף צמיגים לקיץ">
+    </div>
+    <div class="camp-field-row">
+      <span class="camp-label">סוג תוכן</span>
+      <select id="camp-type" class="camp-select">
+        <option>פוסט</option>
+        <option>סטורי</option>
+        <option>מודעה ממומנת</option>
+        <option>ניוזלטר</option>
+      </select>
+    </div>
+    <div class="camp-field-row">
+      <span class="camp-label">פלטפורמות</span>
+      <div class="camp-checkboxes">
+        <label class="camp-check-label"><input type="checkbox" value="פייסבוק"    class="camp-cb" checked> 📘 פייסבוק</label>
+        <label class="camp-check-label"><input type="checkbox" value="אינסטגרם"   class="camp-cb" checked> 📸 אינסטגרם</label>
+        <label class="camp-check-label"><input type="checkbox" value="וואטסאפ"   class="camp-cb">         💬 וואטסאפ</label>
+        <label class="camp-check-label"><input type="checkbox" value="גוגל Ads"  class="camp-cb">         🎯 גוגל Ads</label>
+      </div>
+    </div>
+    <button class="btn-camp-create" id="btn-camp-create" onclick="createCampaign()">
+      🚀 צור קמפיין — AI יכתוב ויחכה לאישורך
+    </button>
+    <div class="camp-status" id="camp-create-status"></div>
+  </div>
+</div>
+
+<!-- סקשן 2: תור אישורים -->
+<div class="camp-panel">
+  <div class="camp-panel-header">
+    <span class="camp-panel-title">⏳ ממתינים לאישורך</span>
+    <button class="btn-sm btn-primary" onclick="loadQueue()">🔄 רענן</button>
+  </div>
+  <div id="camp-queue-body">
+    <div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;">טוען...</div>
+  </div>
+</div>
+
+<!-- סקשן 3: היסטוריית פרסומים -->
+<div class="camp-panel">
+  <div class="camp-panel-header">
+    <span class="camp-panel-title">📋 היסטוריית פרסומים</span>
+    <button class="btn-sm" style="background:var(--surface2); color:var(--text); border:1px solid var(--border);"
+            onclick="loadLog()">🔄 רענן</button>
+  </div>
+  <div id="camp-log-body">
+    <div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;">טוען...</div>
+  </div>
+</div>
+
+<!-- מודל תצוגה מקדימה -->
+<div class="camp-modal-overlay" id="camp-modal-overlay">
+  <div class="camp-modal">
+    <div class="camp-modal-header">
+      <span id="camp-modal-title" style="font-size:14px; font-weight:700;">תצוגה מקדימה</span>
+      <button onclick="closeCampModal()"
+              style="background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer; line-height:1;">✕</button>
+    </div>
+    <div class="camp-modal-body" style="display:block; padding:0; overflow-y:auto; max-height:60vh;">
+      <!-- תצוגת פוסטים לכל פלטפורמה -->
+      <div id="modal-preview-row"
+           style="display:flex; flex-wrap:wrap; gap:16px; padding:20px;"></div>
+      <!-- פרטים מורחבים -->
+      <div style="padding:0 20px 20px; display:flex; flex-direction:column; gap:8px;">
+        <details style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
+          <summary style="cursor:pointer; font-size:12px; font-weight:700; color:var(--text-dim); outline:none;">📝 טקסטים מלאים</summary>
+          <div id="modal-texts" style="margin-top:10px; font-size:12px; line-height:1.65; white-space:pre-wrap; color:var(--text);"></div>
+        </details>
+        <details style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
+          <summary style="cursor:pointer; font-size:12px; font-weight:700; color:var(--text-dim); outline:none;">🎯 אסטרטגיה וקונספט</summary>
+          <div id="modal-strategy" style="margin-top:10px; font-size:12px; line-height:1.65; white-space:pre-wrap; color:var(--text);"></div>
+        </details>
+      </div>
+    </div>
+    <div class="camp-modal-footer">
+      <input type="text" id="camp-reject-reason" class="camp-reject-input"
+             placeholder="סיבת דחייה (אופציונלי)">
+      <button class="btn-sm" style="background:rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.3);"
+              onclick="rejectCampaign()">❌ דחה</button>
+      <button class="btn-sm btn-primary" style="margin-right:auto;"
+              onclick="approveCampaign()">✅ אשר ופרסם</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _currentCampId = null;
+
+async function createCampaign() {
+  const topic = document.getElementById('camp-topic').value.trim();
+  if (!topic) { setCampStatus('נא להזין נושא לקמפיין', 'error'); return; }
+
+  const platforms = Array.from(
+    document.querySelectorAll('.camp-cb:checked')
+  ).map(cb => cb.value);
+  if (!platforms.length) { setCampStatus('בחר לפחות פלטפורמה אחת', 'error'); return; }
+
+  const campaignType = document.getElementById('camp-type').value;
+  const btn = document.getElementById('btn-camp-create');
+  btn.disabled = true;
+  btn.textContent = '⏳ AI כותב קמפיין... (30-60 שניות)';
+  setCampStatus('⏳ סוכן השיווק מגבש אסטרטגיה, סוכן הקופירייטינג כותב טקסטים... אנא המתן', 'loading');
+
+  try {
+    const res  = await fetch('/api/campaigns/create', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ topic, platforms, campaign_type: campaignType })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setCampStatus('✅ קמפיין נוצר ומחכה לאישורך בתור למטה!', 'ok');
+      document.getElementById('camp-topic').value = '';
+      loadQueue();
+    } else {
+      setCampStatus('❌ שגיאה: ' + data.error, 'error');
+    }
+  } catch(e) {
+    setCampStatus('❌ שגיאת תקשורת: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 צור קמפיין — AI יכתוב ויחכה לאישורך';
+  }
+}
+
+function setCampStatus(msg, type) {
+  const el = document.getElementById('camp-create-status');
+  el.textContent = msg;
+  el.className = 'camp-status ' + type;
+}
+
+async function loadQueue() {
+  const container = document.getElementById('camp-queue-body');
+  try {
+    const res  = await fetch('/api/campaigns/queue');
+    const data = await res.json();
+    if (!data.campaigns || !data.campaigns.length) {
+      container.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;">אין קמפיינים ממתינים לאישור</div>';
+      return;
+    }
+    container.innerHTML = data.campaigns.map(c => `
+      <div class="camp-row">
+        <div class="camp-row-info">
+          <div class="camp-row-topic">
+            <span class="badge-waiting">ממתין</span>${escHtml(c.topic)}
+          </div>
+          <div class="camp-row-meta">
+            ${escHtml(c.platforms.join(' · '))} | ${escHtml(c.campaign_type)}
+            &nbsp;·&nbsp; ${formatDate(c.created_at)}
+          </div>
+        </div>
+        <div class="camp-row-actions">
+          <button class="btn-sm btn-primary" onclick="previewCampaign(${c.id})">👁️ צפה ואשר</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML = '<div style="padding:16px; color:var(--red); font-size:12px;">שגיאה בטעינה</div>';
+  }
+}
+
+async function loadLog() {
+  const container = document.getElementById('camp-log-body');
+  try {
+    const res  = await fetch('/api/campaigns/log');
+    const data = await res.json();
+    if (!data.campaigns || !data.campaigns.length) {
+      container.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;">אין פרסומים עדיין</div>';
+      return;
+    }
+    container.innerHTML = data.campaigns.map(c => `
+      <div class="camp-row">
+        <div class="camp-row-info">
+          <div class="camp-row-topic">
+            <span class="badge-published">פורסם</span>${escHtml(c.topic)}
+          </div>
+          <div class="camp-row-meta">
+            ${escHtml(c.platforms.join(' · '))} | ${escHtml(c.campaign_type)}
+            &nbsp;·&nbsp; ${formatDate(c.published_at)}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML = '<div style="padding:16px; color:var(--red); font-size:12px;">שגיאה בטעינה</div>';
+  }
+}
+
+function extractPlatformText(texts, platform) {
+  if (!texts) return '';
+  const lines    = texts.split('\n');
+  const startIdx = lines.findIndex(l =>
+    l.includes(platform) || l.toLowerCase().includes(platform.toLowerCase())
+  );
+  if (startIdx === -1) return texts.substring(0, 400);
+  const section = [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    if (lines[i].startsWith('##') && i > startIdx + 1) break;
+    section.push(lines[i]);
+  }
+  return section.join('\n').trim() || texts.substring(0, 400);
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+  return escHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+    .replace(/^#{1,3}\s*(.+)$/gm, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+const PLATFORM_ICONS = {
+  'פייסבוק': '📘', 'אינסטגרם': '📸', 'וואטסאפ': '💬', 'גוגל Ads': '🎯'
+};
+
+async function previewCampaign(id) {
+  const res  = await fetch('/api/campaigns/queue');
+  const data = await res.json();
+  const c    = data.campaigns.find(x => x.id === id);
+  if (!c) return;
+
+  _currentCampId = id;
+  document.getElementById('camp-modal-title').textContent =
+    `📋 תצוגה מקדימה: ${c.topic}`;
+  document.getElementById('camp-reject-reason').value = '';
+
+  // טקסטים ואסטרטגיה בפרטים המורחבים
+  document.getElementById('modal-texts').textContent    = c.texts    || '';
+  document.getElementById('modal-strategy').textContent = c.strategy || '';
+
+  // תמונה — חלץ רק שם הקובץ
+  const imgFilename = c.image_path ? c.image_path.split(/[\\/]/).pop() : null;
+  const imgHtml = imgFilename
+    ? `<img src="/outputs/marketing/${imgFilename}"
+            style="width:100%; max-height:260px; object-fit:cover; display:block;"
+            onerror="this.parentElement.innerHTML='<div style=\\'color:var(--text-dim);font-size:12px;padding:20px;text-align:center;\\'>📷 תמונה לא נמצאה</div>'">`
+    : `<div style="color:var(--text-dim); font-size:12px; padding:20px; text-align:center;">📷 אין תמונה</div>`;
+
+  // בנה כרטיס לכל פלטפורמה
+  const previewHTML = c.platforms.map(platform => {
+    const icon = PLATFORM_ICONS[platform] || '📣';
+    const platformText = extractPlatformText(c.texts, platform);
+    return `
+      <div style="flex:1; min-width:280px; max-width:380px;">
+        <div style="background:var(--surface2); border:1px solid var(--border);
+                    border-radius:12px; overflow:hidden;">
+          <!-- Header -->
+          <div style="padding:10px 14px; display:flex; align-items:center; gap:10px;
+                      border-bottom:1px solid var(--border);">
+            <div style="width:34px; height:34px; border-radius:50%;
+                        background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366);
+                        display:flex; align-items:center; justify-content:center; font-size:16px;">
+              🏢
+            </div>
+            <div>
+              <div style="font-size:12px; font-weight:700;">LINGLONG צמיגים</div>
+              <div style="font-size:10px; color:var(--text-dim);">${icon} ${platform}</div>
+            </div>
+          </div>
+          <!-- תמונה -->
+          <div style="background:#111; min-height:160px; display:flex;
+                      align-items:center; justify-content:center;">
+            ${imgHtml}
+          </div>
+          <!-- טקסט -->
+          <div style="padding:12px 14px; font-size:12px; line-height:1.65;
+                      max-height:180px; overflow-y:auto; direction:rtl;">
+            ${renderMarkdown(platformText)}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('modal-preview-row').innerHTML = previewHTML;
+  document.getElementById('camp-modal-overlay').classList.add('open');
+}
+
+function closeCampModal() {
+  document.getElementById('camp-modal-overlay').classList.remove('open');
+}
+
+async function approveCampaign() {
+  const res  = await fetch(`/api/campaigns/${_currentCampId}/approve`, { method: 'POST' });
+  const data = await res.json();
+  if (data.ok) {
+    closeCampModal();
+    const platformsList = data.platforms.join(', ');
+    const msg =
+      `✅ קמפיין אושר ונשמר!\n\n` +
+      `📋 פלטפורמות: ${platformsList}\n\n` +
+      `⚠️ שים לב:\n` +
+      `פרסום אוטומטי לרשתות חברתיות דורש חיבור API.\n` +
+      `כרגע הקמפיין נשמר ומוכן — פרסם ידנית\n` +
+      `או חבר את ה-API בהמשך.\n\n` +
+      `📁 התמונה שמורה ב: outputs/marketing/`;
+    alert(msg);
+    loadQueue();
+    loadLog();
+  } else {
+    alert('שגיאה: ' + data.error);
+  }
+}
+
+async function rejectCampaign() {
+  const reason = document.getElementById('camp-reject-reason').value.trim() || 'ללא סיבה';
+  const res  = await fetch(`/api/campaigns/${_currentCampId}/reject`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ reason })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    closeCampModal();
+    showCampToast('🚫 קמפיין נדחה — ' + reason, 'error');
+    loadQueue();
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function formatDate(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleString('he-IL', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  catch { return iso; }
+}
+function showCampToast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast-notification toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('toast-visible'));
+  setTimeout(() => { el.classList.remove('toast-visible'); setTimeout(() => el.remove(), 400); }, 5000);
+}
+
+// סגירה בלחיצה על רקע
+document.getElementById('camp-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeCampModal();
+});
+
+// טעינה ראשונית
+loadQueue();
+loadLog();
+</script>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="תמונה מוגדלת">
+</div>
+
+<script>
+// ── מצב פשוט / מקצועי ─────────────────────────────────────────────
+let isPro = localStorage.getItem('marketingMode') === 'pro';
+
+function toggleMode() {
+  isPro = !isPro;
+  localStorage.setItem('marketingMode', isPro ? 'pro' : 'simple');
+  applyMode();
+}
+
+function applyMode() {
+  document.querySelectorAll('.simple-mode').forEach(el => el.style.display = isPro ? 'none'  : 'block');
+  document.querySelectorAll('.pro-mode').forEach(el =>    el.style.display = isPro ? 'block' : 'none');
+  const btn  = document.getElementById('toggle-mode');
+  const desc = document.getElementById('mode-description');
+  if (isPro) {
+    btn.textContent      = '⚡ עבור למצב פשוט';
+    btn.style.background = '#059669';
+    desc.textContent     = 'מצב מקצועי — שליטה מלאה על כל פרמטר';
+  } else {
+    btn.textContent      = '🎯 עבור למצב מקצועי';
+    btn.style.background = '#7C3AED';
+    desc.textContent     = 'מצב פשוט — תיאור אחד בעברית, AI עושה הכל';
+  }
+}
+
+// ── הגדרת כרטיסים ─────────────────────────────────────────────────
+const CARD_CONFIG = {
+  fb:     { size: "1:1",
+            style:  () => document.getElementById('fb-style')?.value || 'מודעה מקצועית',
+            model:  () => document.getElementById('fb-model').value,
+            visual: () => document.getElementById('fb-visual').value,
+            simple: () => document.getElementById('fb-simple').value },
+  story:  { size: "9:16",
+            style:  () => document.getElementById('story-style')?.value || 'צבעוני ובולט',
+            model:  () => document.getElementById('story-model').value,
+            visual: () => document.getElementById('story-visual').value,
+            simple: () => document.getElementById('story-simple').value },
+  flyer:  { size: "1:1",
+            style:  () => document.getElementById('flyer-style')?.value || 'מודרני',
+            model:  () => document.getElementById('flyer-model').value,
+            visual: () => document.getElementById('flyer-visual').value,
+            simple: () => document.getElementById('flyer-simple').value },
+  banner: { size: "16:9",
+            style:  () => "באנר ממומן לקהל " + (document.getElementById('banner-audience')?.value || 'עסקי'),
+            model:  () => document.getElementById('banner-model').value,
+            visual: () => document.getElementById('banner-visual').value,
+            simple: () => document.getElementById('banner-simple').value },
+};
+
+// בונה רשימת טקסטים עבריים לשכבת Pillow
+function buildTexts(cardId) {
+  const texts = [];
+  const title    = document.getElementById(`${cardId}-title`)?.value?.trim();
+  const subtitle = document.getElementById(`${cardId}-subtitle`)?.value?.trim();
+  const extra    = document.getElementById(`${cardId}-extra`)?.value?.trim();
+  if (title)    texts.push({ text: title,    x: 0.5, y: 0.28, size: 64, color: "white"   });
+  if (subtitle) texts.push({ text: subtitle, x: 0.5, y: 0.50, size: 44, color: "#FF6B00" });
+  if (extra)    texts.push({ text: extra,    x: 0.5, y: 0.72, size: 34, color: "white"   });
+  return texts;
+}
+
+async function generate(cardId) {
+  const cfg   = CARD_CONFIG[cardId];
+  const model = cfg.model();
+  const size  = cfg.size;
+
+  // בנה payload לפי מצב
+  let payload;
+  if (isPro) {
+    const visual = cfg.visual().trim();
+    if (!visual) { showStatus(cardId, 'הזן תיאור ויזואלי', 'error'); return; }
+    payload = { visual_description: visual, style: cfg.style(), size, model, texts: buildTexts(cardId) };
+  } else {
+    const prompt = cfg.simple().trim();
+    if (!prompt) { showStatus(cardId, 'הזן תיאור לתמונה', 'error'); return; }
+    payload = { prompt, size, model };
+  }
+
+  const btn = document.querySelector(`[onclick="generate('${cardId}')"]`);
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> יוצר תמונה...';
+
+  const hasText   = isPro && (payload.texts || []).length > 0;
+  const baseMsg   = model === 'canva'
+    ? '⏳ מכין פרומפט לCanva...'
+    : model.includes('imagen')
+      ? '⏳ Imagen 4 יוצר תמונה... (~10-20 שניות)'
+      : '⏳ Gemini יוצר תמונה... (~15-30 שניות)';
+  const statusMsg = hasText ? baseMsg.replace('...', '') + ' + מוסיף טקסט עברי...' : baseMsg;
+  showStatus(cardId, statusMsg, 'loading');
+  document.getElementById(`${cardId}-preview`).classList.remove('visible');
+
+  try {
+    const res  = await fetch('/api/marketing/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (data.success && data.type === 'canva') {
+      const pid = `canva-prompt-${cardId}`;
+      const previewEl = document.getElementById(`${cardId}-preview`);
+      previewEl.innerHTML = `
+        <div style="background:#1a3a1a; padding:16px; border-radius:8px; text-align:right; direction:rtl;">
+          <div style="font-weight:700; margin-bottom:8px; color:#4ade80;">🎨 צור ב-Canva</div>
+          <div style="font-size:12px; color:#86efac; margin-bottom:8px;">הפרומפט המוכן לשימוש:</div>
+          <textarea id="${pid}" readonly style="width:100%; height:80px; padding:8px; border-radius:6px; border:1px solid #15803d; background:#0f2a0f; color:#bbf7d0; font-size:11px; resize:none; direction:rtl; font-family:inherit; box-sizing:border-box;">${data.prompt}</textarea>
+          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+            <button onclick="navigator.clipboard.writeText(document.getElementById('${pid}').value).then(()=>this.textContent='✅ הועתק!')"
+              style="flex:1; padding:8px; border-radius:6px; border:1px solid #15803d; background:#0f2a0f; color:#4ade80; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;">
+              📋 העתק פרומפט
+            </button>
+            <a href="https://www.canva.com" target="_blank" rel="noopener"
+               style="flex:1; display:flex; align-items:center; justify-content:center; background:#7c3aed; color:#fff; padding:8px 18px; border-radius:6px; text-decoration:none; font-size:12px; font-weight:700;">
+              🎨 פתח Canva
+            </a>
+          </div>
+        </div>`;
+      previewEl.classList.add('visible');
+      showStatus(cardId, '🎨 מוכן — העתק את הפרומפט ופתח Canva', 'ok');
+    } else if (data.success) {
+      const imgUrl    = `/outputs/marketing/${data.filename}`;
+      const previewEl = document.getElementById(`${cardId}-preview`);
+      // שחזור מבנה מקורי אם הוחלף על-ידי Canva
+      if (!document.getElementById(`${cardId}-img`)) {
+        previewEl.innerHTML = `
+          <img class="preview-img" id="${cardId}-img" src="" alt="תמונה שנוצרה">
+          <div class="preview-actions">
+            <a class="btn-dl" id="${cardId}-dl" href="#" download>⬇ הורד</a>
+            <button class="btn-dl" onclick="openLightbox(document.getElementById('${cardId}-img').src)">🔍 הגדל</button>
+          </div>`;
+      }
+      const imgEl = document.getElementById(`${cardId}-img`);
+      const dlEl  = document.getElementById(`${cardId}-dl`);
+      imgEl.src = imgUrl + '?t=' + Date.now();
+      dlEl.href = imgUrl;
+      dlEl.download = data.filename;
+      previewEl.classList.add('visible');
+      showStatus(cardId, `✅ תמונה נוצרה בהצלחה! (${data.model || model})`, 'ok');
+      setTimeout(loadGallery, 800);
+    } else {
+      showStatus(cardId, '❌ ' + (data.error || 'שגיאה לא ידועה'), 'error');
+    }
+  } catch (e) {
+    showStatus(cardId, '❌ שגיאת רשת: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✨ צור תמונה';
+  }
+}
+
+function showStatus(cardId, msg, type) {
+  const el = document.getElementById(`${cardId}-status`);
+  el.textContent  = msg;
+  el.className    = `status-msg ${type}`;
+}
+
+// ── Notification toast ────────────────────────────────────────────
+function showNotification(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast-notification toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  // fade in
+  requestAnimationFrame(() => el.classList.add('toast-visible'));
+  setTimeout(() => {
+    el.classList.remove('toast-visible');
+    setTimeout(() => el.remove(), 400);
+  }, 4000);
+}
+
+// ── Gallery ───────────────────────────────────────────────────────
+async function loadGallery() {
+  const body = document.getElementById('gallery-body');
+  body.innerHTML = '<div class="empty-gallery">טוען...</div>';
+  try {
+    const res   = await fetch('/api/marketing/gallery');
+    const items = await res.json();
+    if (!items.length) {
+      body.innerHTML = '<div class="empty-gallery">📷 אין תמונות עדיין — צור תמונה ראשונה למעלה</div>';
+      return;
+    }
+    body.innerHTML = `<div class="gallery-grid">${items.map(renderGalleryItem).join('')}</div>`;
+  } catch (e) {
+    body.innerHTML = '<div class="empty-gallery">שגיאה בטעינת הגלריה</div>';
+  }
+}
+
+function renderGalleryItem(item) {
+  const url = `/outputs/marketing/${item.filename}?t=${Date.now()}`;
+  return `
+    <div class="gallery-item">
+      <img src="${url}" alt="${item.filename}" onclick="openLightbox('${url}')">
+      <div class="gallery-item-info">${item.created}<br>${item.size_kb} KB</div>
+      <div class="gallery-item-actions">
+        <a class="gal-btn gal-btn-dl" href="${url}" download="${item.filename}">⬇ הורד</a>
+        <button class="gal-btn gal-btn-del" onclick="deleteImage('${item.filename}', this)">🗑</button>
+      </div>
+    </div>`;
+}
+
+async function deleteImage(filename, btn) {
+  if (!confirm('למחוק את התמונה?')) return;
+  await fetch(`/api/marketing/delete/${filename}`, { method: 'POST' });
+  btn.closest('.gallery-item').remove();
+}
+
+// ── Lightbox ──────────────────────────────────────────────────────
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+// טעינה ראשונית
+applyMode();
+loadGallery();
+</script>
+{% endblock %}

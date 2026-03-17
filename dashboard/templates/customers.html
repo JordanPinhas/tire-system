@@ -1,0 +1,1090 @@
+{% extends "base.html" %}
+
+{% block title %}לקוחות - דשבורד צמיגים{% endblock %}
+{% block page_title %}ניהול לקוחות{% endblock %}
+{% block breadcrumb %}לקוחות ותנאי מכירה{% endblock %}
+
+{% block content %}
+
+<style>
+  /* ---- Filter bar inputs ---- */
+  .filter-bar input[type="search"],
+  .filter-bar select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    min-width: 180px;
+  }
+  .filter-bar input[type="search"]:focus,
+  .filter-bar select:focus {
+    border-color: var(--blue);
+  }
+  .filter-bar input[type="search"]::placeholder { color: var(--text-dim); }
+
+  /* ---- Import panel ---- */
+  .import-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .import-panel-header {
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .import-panel-header:hover { background: var(--surface2); }
+  .import-panel-title { font-size: 13px; font-weight: 600; }
+  .import-panel-chevron { font-size: 12px; color: var(--text-dim); transition: transform 0.2s; }
+  .import-panel-chevron.open { transform: rotate(180deg); }
+  .import-panel-body {
+    display: none;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .import-panel-body.open { display: flex; }
+  .import-ai-box {
+    display: none;
+    margin-top: 12px;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  .import-ai-box.open { display: flex; }
+  .import-ai-box textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+    resize: vertical;
+    outline: none;
+    font-family: inherit;
+  }
+  .import-ai-box textarea:focus { border-color: var(--blue); }
+
+  /* ---- Customer modal overlay ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 620px;
+    max-width: 96vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface2);
+    flex-shrink: 0;
+  }
+  .modal-header-title {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .modal-close:hover { color: var(--text); background: var(--border); }
+
+  /* ---- Tabs ---- */
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 10px 18px;
+    font-size: 13px;
+    border: none;
+    background: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--blue-light); border-bottom-color: var(--blue); font-weight: 600; }
+
+  .tab-content { display: none; padding: 20px; overflow-y: auto; flex: 1; }
+  .tab-content.active { display: block; }
+
+  /* ---- Form grid ---- */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 7px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+    width: 100%;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus { border-color: var(--blue); }
+  .form-group input::placeholder,
+  .form-group textarea::placeholder { color: var(--text-dim); }
+
+  /* ---- Vehicles table in modal ---- */
+  .vehicle-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .vehicle-table th {
+    text-align: right;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .vehicle-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .vehicle-table tr:last-child td { border-bottom: none; }
+  .vehicle-table input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    width: 100%;
+    font-family: inherit;
+    outline: none;
+  }
+  .vehicle-table input:focus { border-color: var(--blue); }
+  .vehicle-remove {
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .vehicle-remove:hover { background: rgba(239,68,68,.12); }
+
+  /* ---- Preview modal ---- */
+  .preview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .preview-overlay.open { display: flex; }
+  .preview-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 700px;
+    max-width: 96vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .preview-box .modal-header { background: var(--surface2); }
+
+  /* ---- Toast ---- */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 999;
+    padding: 12px 20px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    min-width: 200px;
+    max-width: 340px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.ok  { background: rgba(34,197,94,.2); border: 1px solid rgba(34,197,94,.4); color: #4ade80; }
+  .toast.err { background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.4); color: #f87171; }
+
+  /* ---- Table row clickable ---- */
+  .clickable-row { cursor: pointer; }
+
+  /* ---- Action buttons in table ---- */
+  .action-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 4px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+  .action-btn:hover { background: var(--surface2); color: var(--text); }
+  .action-btn.danger:hover { background: rgba(239,68,68,.12); border-color: var(--red); color: var(--red); }
+
+  /* ---- Required asterisk ---- */
+  .req { color: var(--red); margin-right: 2px; }
+</style>
+
+<!-- Summary Cards -->
+<div class="stat-grid">
+  <div class="stat-card blue">
+    <div class="stat-icon">👤</div>
+    <div class="stat-value" id="statTotal">—</div>
+    <div class="stat-label">סה"כ לקוחות</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon">✅</div>
+    <div class="stat-value" id="statActive">—</div>
+    <div class="stat-label">פעילים</div>
+    <div class="stat-sub">רכישה ב-90 יום אחרונים</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon">💤</div>
+    <div class="stat-value" id="statInactive">—</div>
+    <div class="stat-label">לא פעילים</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-icon">🆕</div>
+    <div class="stat-value" id="statNew">—</div>
+    <div class="stat-label">חדשים החודש</div>
+  </div>
+</div>
+
+<!-- Import Panel (collapsible) -->
+<div class="import-panel">
+  <div class="import-panel-header" onclick="toggleImportPanel()">
+    <span class="import-panel-title">📥 ייבוא לקוחות</span>
+    <span class="import-panel-chevron" id="importChevron">▼</span>
+  </div>
+  <div class="import-panel-body" id="importPanelBody">
+    <button class="btn-sm btn-primary" onclick="document.getElementById('excelFileInput').click()">
+      📥 ייבוא Excel
+    </button>
+    <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv"
+           style="display:none" onchange="handleExcelFile(this)">
+
+    <button class="btn-sm" style="background:var(--purple);color:#fff;" onclick="openAIImport()">
+      🤖 ייבוא AI
+    </button>
+
+    <button class="btn-sm btn-orange" onclick="openNewCustomer()">
+      ➕ הוסף ידנית
+    </button>
+
+    <div class="import-ai-box" id="importAIBox">
+      <label style="font-size:12px;color:var(--text-dim);">הדבק טקסט עם פרטי לקוחות (גיליון, מייל, כל פורמט):</label>
+      <textarea id="aiImportText" rows="5" placeholder="שם, טלפון, סוג, הנחה...&#10;ישראל ישראלי 050-0000000 מוסך 10%"></textarea>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm btn-primary" onclick="runAIImport()">🤖 נתח AI</button>
+        <button class="btn-sm" style="background:var(--surface2);color:var(--text-dim);" onclick="closeAIImport()">ביטול</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Bar + Table Panel -->
+<div class="panel">
+  <div class="panel-header" style="flex-wrap:wrap;gap:10px;">
+    <span class="panel-title">👤 לקוחות <span class="text-dim" id="tableCount" style="font-weight:400;"></span></span>
+    <div class="filter-bar" style="margin-bottom:0;flex:1;justify-content:flex-start;flex-wrap:wrap;gap:8px;">
+      <input type="search" id="searchInput" placeholder="חיפוש שם / טלפון..."
+             oninput="filterTable()" style="min-width:200px;">
+      <select id="typeFilter" onchange="filterTable()">
+        <option value="">כל הסוגים</option>
+        <option value="פרטי">פרטי</option>
+        <option value="מוסך">מוסך</option>
+        <option value="ציי">ציי</option>
+        <option value="קמעונאי">קמעונאי</option>
+      </select>
+      <select id="statusFilter" onchange="filterTable()">
+        <option value="">כל הסטטוסים</option>
+        <option value="פעיל">פעיל</option>
+        <option value="לא פעיל">לא פעיל</option>
+        <option value="מושהה">מושהה</option>
+      </select>
+      <button class="btn-sm btn-orange" onclick="openNewCustomer()">➕ לקוח חדש</button>
+    </div>
+  </div>
+  <div class="panel-body table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>שם לקוח</th>
+          <th>טלפון</th>
+          <th>סוג</th>
+          <th>הנחה %</th>
+          <th>תנאי תשלום</th>
+          <th>עוסק/ח.פ</th>
+          <th>סטטוס</th>
+          <th>פעולות</th>
+        </tr>
+      </thead>
+      <tbody id="customersBody">
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <div class="icon">⏳</div>
+              <div>טוען לקוחות...</div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== Customer Modal ===================== -->
+<div class="modal-overlay" id="customerModal">
+  <div class="modal-box">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="modal-header-title" id="modalTitle">לקוח חדש</div>
+      <button class="btn-sm btn-primary" onclick="saveCustomer()">💾 שמור</button>
+      <button class="btn-sm" id="modalDeleteBtn"
+              style="background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);display:none;"
+              onclick="deleteCustomer(null, true)">🗑️ מחק</button>
+      <button class="modal-close" onclick="closeCustomerModal()">✕</button>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('details')">פרטים</button>
+      <button class="tab-btn" onclick="switchTab('terms')">תנאים</button>
+      <button class="tab-btn" onclick="switchTab('vehicles')">רכבים</button>
+      <button class="tab-btn" onclick="switchTab('history')">היסטוריה</button>
+      <button class="tab-btn" onclick="switchTab('notes')">הערות</button>
+    </div>
+
+    <!-- Tab: פרטים -->
+    <div class="tab-content active" id="tab-details">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>שם לקוח <span class="req">*</span></label>
+          <input type="text" id="fName" placeholder="שם מלא / שם עסק">
+        </div>
+        <div class="form-group">
+          <label>טלפון <span class="req">*</span></label>
+          <input type="tel" id="fPhone" placeholder="050-0000000" dir="ltr">
+        </div>
+        <div class="form-group full">
+          <label>כתובת</label>
+          <input type="text" id="fAddress" placeholder="רחוב, עיר">
+        </div>
+        <div class="form-group">
+          <label>מייל</label>
+          <input type="email" id="fEmail" placeholder="email@example.com" dir="ltr">
+        </div>
+        <div class="form-group">
+          <label>איש קשר</label>
+          <input type="text" id="fContact" placeholder="שם איש קשר">
+        </div>
+        <div class="form-group">
+          <label>מספר עוסק / ח.פ</label>
+          <input type="text" id="fBusiness" placeholder="000000000" dir="ltr">
+        </div>
+        <div class="form-group">
+          <label>סטטוס</label>
+          <select id="fStatus">
+            <option value="פעיל">פעיל</option>
+            <option value="לא פעיל">לא פעיל</option>
+            <option value="מושהה">מושהה</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: תנאים -->
+    <div class="tab-content" id="tab-terms">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>סוג לקוח</label>
+          <select id="fType">
+            <option value="פרטי">פרטי</option>
+            <option value="מוסך">מוסך</option>
+            <option value="ציי">ציי</option>
+            <option value="קמעונאי">קמעונאי</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>הנחה קבועה %</label>
+          <input type="number" id="fDiscount" min="0" max="100" step="0.5" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>תנאי תשלום</label>
+          <select id="fPayment">
+            <option value="מזומן">מזומן</option>
+            <option value="שוטף 30">שוטף 30</option>
+            <option value="שוטף 45">שוטף 45</option>
+            <option value="שוטף 60">שוטף 60</option>
+            <option value="שוטף 90">שוטף 90</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>מחירון מיוחד</label>
+          <input type="text" id="fPriceList" placeholder="שם מחירון / קוד">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: רכבים -->
+    <div class="tab-content" id="tab-vehicles">
+      <div id="vehicleList">
+        <!-- rendered by JS -->
+      </div>
+      <button class="btn-sm btn-primary" style="margin-top:6px;" onclick="addVehicle()">➕ הוסף רכב</button>
+    </div>
+
+    <!-- Tab: היסטוריה -->
+    <div class="tab-content" id="tab-history">
+      <div class="empty-state" style="padding:32px;">
+        <div class="icon">📋</div>
+        <div>היסטוריית עסקאות תופיע כאן בגרסה עתידית</div>
+      </div>
+    </div>
+
+    <!-- Tab: הערות -->
+    <div class="tab-content" id="tab-notes">
+      <div class="form-group">
+        <label>הערות</label>
+        <textarea id="fNotes" style="width:100%;height:160px;resize:vertical;" placeholder="הערות חופשיות על הלקוח..."></textarea>
+      </div>
+    </div>
+
+  </div><!-- /.modal-box -->
+</div><!-- /.modal-overlay -->
+
+<!-- ===================== Preview Modal ===================== -->
+<div class="preview-overlay" id="previewModal">
+  <div class="preview-box">
+    <div class="modal-header">
+      <div class="modal-header-title">👁 תצוגה מקדימה — ייבוא לקוחות</div>
+      <button class="modal-close" onclick="closePreview()">✕</button>
+    </div>
+
+    <div style="padding:14px 20px; border-bottom:1px solid var(--border); background:var(--surface2); flex-shrink:0;">
+      <div class="alert alert-info" style="margin-bottom:0;">
+        ℹ️ לקוחות עם אותו טלפון יתמזגו עם הקיימים. סמן את הלקוחות לייבוא:
+      </div>
+    </div>
+
+    <div style="overflow-y:auto;flex:1;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px;">
+                <input type="checkbox" id="previewSelectAll" checked
+                       onchange="toggleSelectAll(this)">
+              </th>
+              <th>שם</th>
+              <th>טלפון</th>
+              <th>סוג</th>
+              <th>הנחה %</th>
+            </tr>
+          </thead>
+          <tbody id="previewBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-start; flex-shrink:0;">
+      <button class="btn-sm btn-primary" onclick="confirmImport()">✅ ייבוא נבחרים</button>
+      <button class="btn-sm" style="background:var(--surface2);color:var(--text-dim);" onclick="closePreview()">ביטול</button>
+      <span id="previewMsg" style="font-size:12px;color:var(--text-dim);align-self:center;"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+
+<script>
+"use strict";
+
+let _customers = [];
+let _editId    = null;
+let _vehicleRows = [];
+let _previewData = [];
+let _activeTab = 'details';
+
+/* ============================================================
+   DATA LOADING
+   ============================================================ */
+
+async function loadCustomers() {
+  try {
+    const resp = await fetch('/api/customers');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    _customers = Array.isArray(data) ? data : (data.customers || []);
+  } catch(e) {
+    // If API not yet implemented, use empty array silently
+    _customers = [];
+    console.warn('Could not load customers:', e.message);
+  }
+  updateStats();
+  renderTable();
+}
+
+/* ============================================================
+   STATS
+   ============================================================ */
+
+function updateStats() {
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - 90);
+
+  const thisMonth  = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+
+  let total    = _customers.length;
+  let active   = 0;
+  let inactive = 0;
+  let newMonth = 0;
+
+  for (const c of _customers) {
+    // Active: last_purchase within 90 days
+    if (c.last_purchase) {
+      const lp = new Date(c.last_purchase);
+      if (!isNaN(lp) && lp >= cutoff) active++;
+    }
+    // Inactive: status field
+    if (c.status === 'לא פעיל') inactive++;
+    // New this month: created_date starts with thisMonth
+    if (c.created_date && c.created_date.startsWith(thisMonth)) newMonth++;
+  }
+
+  document.getElementById('statTotal').textContent    = total;
+  document.getElementById('statActive').textContent   = active;
+  document.getElementById('statInactive').textContent = inactive;
+  document.getElementById('statNew').textContent      = newMonth;
+}
+
+/* ============================================================
+   RENDER TABLE
+   ============================================================ */
+
+function typeBadge(t) {
+  const map = {
+    'פרטי':    'badge-blue',
+    'מוסך':    'badge-orange',
+    'ציי':     'badge-purple',
+    'קמעונאי': 'badge-green',
+  };
+  const cls = map[t] || 'badge-gray';
+  return `<span class="badge ${cls}">${t || '—'}</span>`;
+}
+
+function statusBadge(s) {
+  const map = {
+    'פעיל':    'badge-green',
+    'לא פעיל': 'badge-gray',
+    'מושהה':   'badge-red',
+  };
+  const cls = map[s] || 'badge-gray';
+  return `<span class="badge ${cls}">${s || '—'}</span>`;
+}
+
+function renderTable(subset) {
+  const list = subset !== undefined ? subset : _customers;
+  const tbody = document.getElementById('customersBody');
+  const countEl = document.getElementById('tableCount');
+  countEl.textContent = '(' + list.length + ')';
+
+  if (!list.length) {
+    tbody.innerHTML = `
+      <tr><td colspan="8">
+        <div class="empty-state">
+          <div class="icon">👤</div>
+          <div>אין לקוחות להצגה</div>
+        </div>
+      </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(c => `
+    <tr class="clickable-row" onclick="openCustomer('${c.id}')">
+      <td class="fw-bold">${esc(c.name)}</td>
+      <td dir="ltr" style="color:var(--blue-light);">
+        <a href="tel:${esc(c.phone)}" style="color:inherit;text-decoration:none;"
+           onclick="event.stopPropagation()">${esc(c.phone)}</a>
+      </td>
+      <td>${typeBadge(c.customer_type)}</td>
+      <td>${c.discount_pct != null && c.discount_pct !== '' ? c.discount_pct + '%' : '—'}</td>
+      <td>${esc(c.payment_terms) || '—'}</td>
+      <td class="text-dim" dir="ltr">${esc(c.business_id) || '—'}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td onclick="event.stopPropagation()">
+        <div style="display:flex;gap:6px;">
+          <button class="action-btn" title="עריכה" onclick="openCustomer('${c.id}')">✏️</button>
+          <button class="action-btn danger" title="מחיקה" onclick="deleteCustomer('${c.id}')">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* ============================================================
+   FILTER
+   ============================================================ */
+
+function filterTable() {
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const type   = document.getElementById('typeFilter').value;
+  const status = document.getElementById('statusFilter').value;
+
+  const filtered = _customers.filter(c => {
+    if (search) {
+      const haystack = (c.name + ' ' + c.phone).toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    if (type   && c.customer_type !== type)   return false;
+    if (status && c.status        !== status) return false;
+    return true;
+  });
+  renderTable(filtered);
+}
+
+/* ============================================================
+   MODAL OPEN / CLOSE
+   ============================================================ */
+
+function openCustomer(id) {
+  _editId = id;
+  const c = _customers.find(x => String(x.id) === String(id));
+  if (!c) { showToast('לקוח לא נמצא', 'err'); return; }
+
+  document.getElementById('modalTitle').textContent = c.name || 'עריכת לקוח';
+  document.getElementById('modalDeleteBtn').style.display = 'inline-flex';
+
+  // Details tab
+  setVal('fName',     c.name);
+  setVal('fPhone',    c.phone);
+  setVal('fAddress',  c.address);
+  setVal('fEmail',    c.email);
+  setVal('fContact',  c.contact_person);
+  setVal('fBusiness', c.business_id);
+  setVal('fStatus',   c.status || 'פעיל');
+
+  // Terms tab
+  setVal('fType',      c.customer_type || 'פרטי');
+  setVal('fDiscount',  c.discount_pct != null ? c.discount_pct : '');
+  setVal('fPayment',   c.payment_terms || 'מזומן');
+  setVal('fPriceList', c.special_price_list);
+
+  // Notes
+  setVal('fNotes', c.notes);
+
+  // Vehicles
+  _vehicleRows = (c.vehicles || []).map(v => ({ plate: v.plate || '', tire_size: v.tire_size || '' }));
+  renderVehicles();
+
+  switchTab('details');
+  document.getElementById('customerModal').classList.add('open');
+}
+
+function openNewCustomer() {
+  _editId = null;
+  document.getElementById('modalTitle').textContent = 'לקוח חדש';
+  document.getElementById('modalDeleteBtn').style.display = 'none';
+
+  ['fName','fPhone','fAddress','fEmail','fContact','fBusiness','fPriceList','fNotes'].forEach(id => setVal(id,''));
+  setVal('fStatus',  'פעיל');
+  setVal('fType',    'פרטי');
+  setVal('fDiscount','');
+  setVal('fPayment', 'מזומן');
+
+  _vehicleRows = [];
+  renderVehicles();
+
+  switchTab('details');
+  document.getElementById('customerModal').classList.add('open');
+}
+
+function closeCustomerModal() {
+  document.getElementById('customerModal').classList.remove('open');
+  _editId = null;
+}
+
+/* ============================================================
+   SAVE
+   ============================================================ */
+
+async function saveCustomer() {
+  const name  = document.getElementById('fName').value.trim();
+  const phone = document.getElementById('fPhone').value.trim();
+  if (!name)  { showToast('שם לקוח הוא שדה חובה', 'err'); switchTab('details'); return; }
+  if (!phone) { showToast('טלפון הוא שדה חובה', 'err');    switchTab('details'); return; }
+
+  const payload = {
+    name,
+    phone,
+    address:            document.getElementById('fAddress').value.trim(),
+    email:              document.getElementById('fEmail').value.trim(),
+    contact_person:     document.getElementById('fContact').value.trim(),
+    business_id:        document.getElementById('fBusiness').value.trim(),
+    status:             document.getElementById('fStatus').value,
+    customer_type:      document.getElementById('fType').value,
+    discount_pct:       parseFloat(document.getElementById('fDiscount').value) || 0,
+    payment_terms:      document.getElementById('fPayment').value,
+    special_price_list: document.getElementById('fPriceList').value.trim(),
+    vehicles:           getVehicles(),
+    notes:              document.getElementById('fNotes').value.trim(),
+  };
+
+  try {
+    let url = _editId ? `/api/customers/${_editId}/update` : '/api/customers';
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'שגיאה');
+
+    showToast(_editId ? 'הלקוח עודכן בהצלחה' : 'הלקוח נוסף בהצלחה', 'ok');
+    closeCustomerModal();
+    await loadCustomers();
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'err');
+  }
+}
+
+/* ============================================================
+   DELETE
+   ============================================================ */
+
+async function deleteCustomer(id, fromModal) {
+  const targetId = id || _editId;
+  if (!targetId) return;
+  const c = _customers.find(x => String(x.id) === String(targetId));
+  const name = c ? c.name : targetId;
+
+  if (!confirm(`למחוק את הלקוח "${name}"? פעולה זו אינה הפיכה.`)) return;
+
+  try {
+    const resp = await fetch(`/api/customers/${targetId}/delete`, { method: 'POST' });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'שגיאה');
+    showToast('הלקוח נמחק', 'ok');
+    if (fromModal) closeCustomerModal();
+    await loadCustomers();
+  } catch(e) {
+    showToast('שגיאה: ' + e.message, 'err');
+  }
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+
+function switchTab(name) {
+  _activeTab = name;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('onclick').includes("'" + name + "'"));
+  });
+  document.querySelectorAll('.tab-content').forEach(tc => {
+    tc.classList.toggle('active', tc.id === 'tab-' + name);
+  });
+}
+
+/* ============================================================
+   VEHICLES
+   ============================================================ */
+
+function renderVehicles() {
+  const container = document.getElementById('vehicleList');
+  if (!_vehicleRows.length) {
+    container.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="icon">🚗</div><div>אין רכבים. לחץ "הוסף רכב" להוספה.</div></div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <table class="vehicle-table">
+      <thead>
+        <tr>
+          <th>לוחית רישוי</th>
+          <th>מידת צמיג</th>
+          <th style="width:40px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${_vehicleRows.map((v, i) => `
+          <tr>
+            <td><input type="text" value="${esc(v.plate)}"
+                 oninput="_vehicleRows[${i}].plate=this.value"
+                 placeholder="00-000-00" dir="ltr"></td>
+            <td><input type="text" value="${esc(v.tire_size)}"
+                 oninput="_vehicleRows[${i}].tire_size=this.value"
+                 placeholder="205/55R16" dir="ltr"></td>
+            <td><button class="vehicle-remove" onclick="removeVehicle(${i})" title="הסר">✕</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function addVehicle() {
+  _vehicleRows.push({ plate: '', tire_size: '' });
+  renderVehicles();
+}
+
+function removeVehicle(idx) {
+  _vehicleRows.splice(idx, 1);
+  renderVehicles();
+}
+
+function getVehicles() {
+  // Read current input values
+  const trs = document.querySelectorAll('#vehicleList tbody tr');
+  if (!trs.length) return _vehicleRows.filter(v => v.plate || v.tire_size);
+
+  const result = [];
+  trs.forEach((tr, i) => {
+    const inputs = tr.querySelectorAll('input');
+    const plate    = inputs[0] ? inputs[0].value.trim() : (_vehicleRows[i] || {}).plate || '';
+    const tireSize = inputs[1] ? inputs[1].value.trim() : (_vehicleRows[i] || {}).tire_size || '';
+    if (plate || tireSize) result.push({ plate, tire_size: tireSize });
+  });
+  return result;
+}
+
+/* ============================================================
+   IMPORT PANEL
+   ============================================================ */
+
+function toggleImportPanel() {
+  const body    = document.getElementById('importPanelBody');
+  const chevron = document.getElementById('importChevron');
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+function openAIImport() {
+  document.getElementById('importAIBox').classList.add('open');
+}
+
+function closeAIImport() {
+  document.getElementById('importAIBox').classList.remove('open');
+  document.getElementById('aiImportText').value = '';
+}
+
+async function handleExcelFile(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  input.value = '';
+
+  showToast('מעבד קובץ Excel...', 'ok');
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try {
+    const resp = await fetch('/api/customers/import/excel', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'שגיאה');
+    showPreview(data.customers || data.preview || []);
+  } catch(e) {
+    showToast('שגיאת ייבוא: ' + e.message, 'err');
+  }
+}
+
+async function runAIImport() {
+  const text = document.getElementById('aiImportText').value.trim();
+  if (!text) { showToast('הדבק טקסט עם פרטי לקוחות', 'err'); return; }
+
+  showToast('מנתח עם AI...', 'ok');
+  try {
+    const resp = await fetch('/api/customers/import/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'שגיאה');
+    closeAIImport();
+    showPreview(data.customers || data.preview || []);
+  } catch(e) {
+    showToast('שגיאת AI: ' + e.message, 'err');
+  }
+}
+
+/* ============================================================
+   PREVIEW MODAL
+   ============================================================ */
+
+function showPreview(data) {
+  if (!data || !data.length) { showToast('לא נמצאו לקוחות לייבוא', 'err'); return; }
+  _previewData = data;
+
+  const tbody = document.getElementById('previewBody');
+  tbody.innerHTML = data.map((c, i) => `
+    <tr>
+      <td><input type="checkbox" class="preview-cb" data-idx="${i}" checked></td>
+      <td class="fw-bold">${esc(c.name || '')}</td>
+      <td dir="ltr">${esc(c.phone || '')}</td>
+      <td>${typeBadge(c.customer_type || 'פרטי')}</td>
+      <td>${c.discount_pct != null ? c.discount_pct + '%' : '—'}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('previewSelectAll').checked = true;
+  document.getElementById('previewMsg').textContent = `${data.length} לקוחות זוהו`;
+  document.getElementById('previewModal').classList.add('open');
+}
+
+function toggleSelectAll(cb) {
+  document.querySelectorAll('.preview-cb').forEach(c => c.checked = cb.checked);
+}
+
+async function confirmImport() {
+  const selected = [];
+  document.querySelectorAll('.preview-cb').forEach(cb => {
+    if (cb.checked) selected.push(parseInt(cb.dataset.idx));
+  });
+  if (!selected.length) { showToast('לא נבחרו לקוחות לייבוא', 'err'); return; }
+
+  try {
+    const resp = await fetch('/api/customers/import/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customers: _previewData, selected }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'שגיאה');
+
+    showToast(`יובאו ${selected.length} לקוחות בהצלחה`, 'ok');
+    closePreview();
+    await loadCustomers();
+  } catch(e) {
+    showToast('שגיאת ייבוא: ' + e.message, 'err');
+  }
+}
+
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('open');
+  _previewData = [];
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = (val != null) ? val : '';
+}
+
+let _toastTimer = null;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || 'ok') + ' show';
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* Close modals on backdrop click */
+document.getElementById('customerModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCustomerModal();
+});
+document.getElementById('previewModal').addEventListener('click', function(e) {
+  if (e.target === this) closePreview();
+});
+
+/* Close modals on Escape */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('previewModal').classList.contains('open')) closePreview();
+    else if (document.getElementById('customerModal').classList.contains('open')) closeCustomerModal();
+  }
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', loadCustomers);
+</script>
+
+{% endblock %}

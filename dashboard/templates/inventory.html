@@ -1,0 +1,991 @@
+{% extends "base.html" %}
+
+{% block title %}מלאי - דשבורד צמיגים{% endblock %}
+{% block page_title %}ניהול מלאי{% endblock %}
+{% block breadcrumb %}מלאי צמיגים{% endblock %}
+
+{% block content %}
+
+<style>
+  /* ---- אזור ייבוא ---- */
+  .import-zone {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .import-zone-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+  }
+  .import-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .import-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .import-btn:hover { border-color: var(--blue-light); background: var(--blue-dark); color: var(--blue-light); }
+  .import-btn.orange:hover { border-color: var(--orange); background: rgba(249,115,22,.12); color: var(--orange-l); }
+  .import-btn .btn-icon { font-size: 17px; }
+
+  /* ---- סינון ---- */
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .search-box {
+    flex: 1;
+    min-width: 180px;
+    max-width: 280px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-box:focus { border-color: var(--blue-light); }
+  .filter-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* ---- טבלה ---- */
+  .editable-cell { cursor: pointer; }
+  .editable-cell:hover { background: rgba(59,130,246,.08); }
+  .edit-input {
+    background: var(--surface2);
+    border: 1px solid var(--blue-light);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 13px;
+    width: 100%;
+    outline: none;
+  }
+  .action-cell { white-space: nowrap; }
+
+  /* ---- מודל Preview ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: min(92vw, 860px);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+  }
+  .modal-body { overflow-y: auto; padding: 16px 20px; flex: 1; }
+  .modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+  .close-btn { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; }
+  .close-btn:hover { color: var(--text); }
+
+  /* ---- לוג ייבוא ---- */
+  .log-entry {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-tag { color: var(--blue-light); font-weight: 600; }
+
+  /* ---- מודל הוספה ידנית ---- */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 12px; color: var(--text-dim); }
+  .form-group input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus { border-color: var(--blue-light); }
+
+  /* ---- toast ---- */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-size: 13px;
+    z-index: 999;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  }
+  .toast.show { display: flex; }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error   { border-color: var(--red);   color: var(--red); }
+</style>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- כרטיסי סיכום -->
+<div class="stat-grid" style="margin-bottom: 20px;">
+  <div class="stat-card blue">
+    <div class="stat-icon">📦</div>
+    <div class="stat-value">{{ items|length }}</div>
+    <div class="stat-label">סוגי צמיגים</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon">⚠️</div>
+    <div class="stat-value">{{ low_count }}</div>
+    <div class="stat-label">מלאי נמוך</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon">💰</div>
+    <div class="stat-value" style="font-size: 20px;">{{ "{:,.0f}".format(total_value) }} ₪</div>
+    <div class="stat-label">ערך מלאי (עלות)</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-icon">📈</div>
+    <div class="stat-value" style="font-size: 20px;">{{ "{:,.0f}".format(total_sell_value) }} ₪</div>
+    <div class="stat-label">ערך מלאי (מכירה)</div>
+  </div>
+</div>
+
+{% if low_count > 0 %}
+<div class="alert alert-warning">
+  ⚠️ <strong>{{ low_count }} פריט/ים</strong> מתחת לכמות המינימום — מומלץ להזמין מיידית
+</div>
+{% endif %}
+
+<!-- אזור ייבוא -->
+<div class="import-zone">
+  <div class="import-zone-title">📥 ייבוא מלאי</div>
+  <div class="import-buttons">
+    <button class="import-btn orange" onclick="openAddModal()">
+      <span class="btn-icon">➕</span> הוסף ידנית
+    </button>
+    <label class="import-btn" style="cursor:pointer;">
+      <span class="btn-icon">📊</span> Excel / CSV
+      <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileUpload(this,'excel')">
+    </label>
+    <label class="import-btn" style="cursor:pointer;">
+      <span class="btn-icon">📄</span> PDF
+      <input type="file" accept=".pdf" style="display:none" onchange="handleFileUpload(this,'pdf')">
+    </label>
+    <label class="import-btn" style="cursor:pointer;">
+      <span class="btn-icon">🖼️</span> תמונה / סריקה
+      <input type="file" accept="image/*" style="display:none" onchange="handleFileUpload(this,'image')">
+    </label>
+    <label class="import-btn" style="cursor:pointer; border-color: var(--purple); color: var(--purple);">
+      <span class="btn-icon">🟣</span> Linglong / Hubtrac
+      <input type="file" accept=".pdf" style="display:none" onchange="handleFileUpload(this,'linglong')">
+    </label>
+    <button class="import-btn" onclick="openAIModal()">
+      <span class="btn-icon">🤖</span> חילוץ AI
+    </button>
+  </div>
+</div>
+
+<!-- טבלת מלאי -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">📦 כל הצמיגים במלאי</span>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <span class="badge badge-red">⚠ נמוך</span>
+      <span class="badge badge-green">✓ תקין</span>
+      <button class="btn-sm" onclick="clearInventory()"
+        style="background:rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.3);
+               font-size:12px; padding:5px 12px; margin-right:4px;">
+        🗑️ נקה מלאי לדוגמה
+      </button>
+    </div>
+  </div>
+
+  <!-- Toolbar סינון -->
+  <div style="padding: 14px 20px; border-bottom: 1px solid var(--border);">
+    <div class="toolbar">
+      <input type="text" class="search-box" id="searchBox" placeholder="🔍 חיפוש חופשי..." oninput="filterTable()">
+      <select class="filter-select" id="filterBrand" onchange="filterTable()">
+        <option value="">כל המותגים</option>
+        {% for brand in brands %}
+        <option>{{ brand }}</option>
+        {% endfor %}
+      </select>
+      <select class="filter-select" id="filterSize" onchange="filterTable()">
+        <option value="">כל המידות</option>
+        {% for size in sizes %}
+        <option>{{ size }}</option>
+        {% endfor %}
+      </select>
+      <select class="filter-select" id="filterStatus" onchange="filterTable()">
+        <option value="">כל הסטטוסים</option>
+        <option value="low">מלאי נמוך</option>
+        <option value="ok">תקין</option>
+      </select>
+      <span id="rowCount" class="text-dim" style="font-size:12px; margin-right:auto;"></span>
+    </div>
+  </div>
+
+  <div class="panel-body table-wrap">
+    {% if items %}
+    <table id="inventoryTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>מותג</th>
+          <th>מק"ט SAP</th>
+          <th>דגם מסחרי</th>
+          <th>מידה</th>
+          <th>כמות</th>
+          <th>עלות ₪</th>
+          <th>מכירה ₪</th>
+          <th>מינ'</th>
+          <th>סטטוס</th>
+          <th>פעולות</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        {% set is_low = item.id in low_ids %}
+        <tr data-id="{{ item.id }}"
+            data-brand="{{ item.brand|lower }}"
+            data-size="{{ item.size|lower }}"
+            data-status="{% if is_low %}low{% else %}ok{% endif %}"
+            {% if is_low %}class="row-danger"{% endif %}>
+          <td class="text-dim">{{ item.id }}</td>
+          <td class="fw-bold editable-cell" data-field="brand" ondblclick="startEdit(this)">{{ item.brand }}</td>
+          <td class="editable-cell text-dim" data-field="model" ondblclick="startEdit(this)" style="font-family:monospace; font-size:12px;">{{ item.model }}</td>
+          <td class="editable-cell" data-field="tire_model" ondblclick="startEdit(this)">{{ item.get('tire_model', '') }}</td>
+          <td>
+            <span style="font-family:monospace; background:var(--surface2); padding:2px 8px; border-radius:4px; font-size:12px;">
+              {{ item.size }}
+            </span>
+          </td>
+          <td class="editable-cell" data-field="quantity" ondblclick="startEdit(this)">
+            <span class="fw-bold {% if is_low %}text-red{% else %}text-green{% endif %}" style="font-size:15px;">
+              {{ item.quantity }}
+            </span>
+          </td>
+          <td class="editable-cell" data-field="cost_price" ondblclick="startEdit(this)">{{ "{:,.0f}".format(item.cost_price) }}</td>
+          <td class="editable-cell" data-field="sell_price" ondblclick="startEdit(this)">
+            {% if item.get('sell_price') %}{{ "{:,.0f}".format(item.sell_price) }}{% else %}<span class="text-dim">—</span>{% endif %}
+          </td>
+          <td class="editable-cell" data-field="min_qty" ondblclick="startEdit(this)">{{ item.get('min_qty', 10) }}</td>
+          <td>
+            {% if is_low %}
+              <span class="badge badge-red">⚠ נמוך</span>
+            {% else %}
+              <span class="badge badge-green">✓ תקין</span>
+            {% endif %}
+          </td>
+          <td class="action-cell">
+            <button class="btn-sm" style="background:rgba(59,130,246,.15); color:var(--blue-light); border:none; margin-left:4px;"
+                    onclick="editRow(this)">✏️</button>
+            <button class="btn-sm" style="background:rgba(239,68,68,.15); color:#f87171; border:none;"
+                    onclick="deleteItem({{ item.id }})">🗑</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="background: var(--surface2);">
+          <td colspan="9" class="fw-bold" style="padding:12px 16px; color:var(--text-dim);">סה"כ ערך מלאי (עלות)</td>
+          <td colspan="2" class="fw-bold text-orange" style="padding:12px 16px; font-size:15px;">
+            {{ "{:,.0f}".format(total_value) }} ₪
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+      <div class="empty-state">
+        <div class="icon">📦</div>
+        <div>אין פריטים במלאי</div>
+        <div class="text-dim" style="margin-top:8px; font-size:12px;">ייבא מלאי או הוסף ידנית</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- לוג ייבוא -->
+{% if import_log %}
+<div class="panel" style="margin-top: 20px;">
+  <div class="panel-header">
+    <span class="panel-title">📋 לוג ייבוא</span>
+    <span class="badge badge-blue">{{ import_log|length }} פעולות</span>
+  </div>
+  <div class="panel-body" style="padding: 12px 20px; max-height: 180px; overflow-y: auto;">
+    {% for entry in import_log|reverse %}
+    <div class="log-entry">
+      <span class="text-dim">{{ entry.timestamp[:16] }}</span>
+      <span class="log-tag">{{ entry.source }}</span>
+      <span>{{ entry.filename }}</span>
+      <span class="text-green">+{{ entry.items_added }} נוסף</span>
+      <span class="text-blue">↑{{ entry.items_updated }} עודכן</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+
+<!-- ===== מודל: הוספה ידנית ===== -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal-box" style="max-width:500px;">
+    <div class="modal-header">
+      <span>➕ הוספת פריט חדש</span>
+      <button class="close-btn" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>מותג *</label>
+          <input id="add_brand" placeholder="Michelin">
+        </div>
+        <div class="form-group">
+          <label>דגם</label>
+          <input id="add_model" placeholder="Primacy 4">
+        </div>
+        <div class="form-group">
+          <label>מידה *</label>
+          <input id="add_size" placeholder="205/55R16">
+        </div>
+        <div class="form-group">
+          <label>כמות</label>
+          <input id="add_quantity" type="number" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>מחיר עלות ₪</label>
+          <input id="add_cost" type="number" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>מחיר מכירה ₪</label>
+          <input id="add_sell" type="number" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>כמות מינימום</label>
+          <input id="add_min" type="number" value="10" min="0">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm btn-primary" onclick="submitAdd()">שמור פריט</button>
+      <button class="btn-sm" style="background:var(--surface2);" onclick="closeModal('addModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== מודל: Preview ייבוא ===== -->
+<div class="modal-overlay" id="previewModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span id="previewTitle">תצוגה מקדימה — ייבוא מלאי</span>
+      <button class="close-btn" onclick="cancelPreview()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="previewInfo" class="alert alert-info" style="margin-bottom:14px;"></div>
+      <div class="table-wrap">
+        <table id="previewTable" style="table-layout:auto;">
+          <thead>
+            <tr>
+              <th style="min-width:120px;">מותג</th>
+              <th style="min-width:110px;">מק"ט SAP</th>
+              <th style="min-width:130px;">דגם מסחרי</th>
+              <th style="min-width:140px;">תיאור</th>
+              <th style="min-width:110px;">מידה</th>
+              <th style="min-width:70px;">כמות</th>
+              <th style="min-width:90px;">עלות ₪</th>
+              <th style="min-width:90px;">מכירה ₪</th>
+              <th style="min-width:60px;">מינ'</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+      <!-- טקסט גולמי לדיבוג (מוסתר כברירת מחדל) -->
+      <details id="rawTextDetails" style="margin-top:14px; display:none;">
+        <summary style="color:var(--text-dim); font-size:12px; cursor:pointer;">📄 טקסט גולמי מה-PDF (לדיבוג)</summary>
+        <pre id="rawTextBox" style="background:var(--surface2); padding:10px; border-radius:6px;
+             font-size:11px; color:var(--text-dim); white-space:pre-wrap; margin-top:6px; max-height:200px; overflow-y:auto;"></pre>
+      </details>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm btn-primary" onclick="confirmImport()">✓ אישור ושמירה</button>
+      <button class="btn-sm" style="background:var(--surface2);" onclick="cancelPreview()">ביטול — אל תשמור</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== מודל: חילוץ AI ===== -->
+<div class="modal-overlay" id="aiModal">
+  <div class="modal-box" style="max-width:620px;">
+    <div class="modal-header">
+      <span>🤖 חילוץ מלאי בעזרת AI</span>
+      <button class="close-btn" onclick="closeModal('aiModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- טאבים -->
+      <div style="display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:16px;">
+        <button id="aiTabFile" onclick="switchAITab('file')"
+          style="padding:8px 18px; background:none; border:none; border-bottom:2px solid var(--blue-light);
+                 color:var(--blue-light); font-size:13px; font-weight:600; cursor:pointer;">
+          📁 העלאת קובץ
+        </button>
+        <button id="aiTabText" onclick="switchAITab('text')"
+          style="padding:8px 18px; background:none; border:none; border-bottom:2px solid transparent;
+                 color:var(--text-dim); font-size:13px; font-weight:600; cursor:pointer;">
+          📝 הדבקת טקסט
+        </button>
+      </div>
+
+      <!-- אזור קובץ -->
+      <div id="aiFileSection">
+        <p style="color:var(--text-dim); font-size:13px; margin-bottom:12px;">
+          בחר קובץ PDF, Excel, CSV או תמונה — Claude יחלץ אוטומטית את פריטי המלאי.
+        </p>
+        <label id="aiDropZone"
+          style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+                 gap:8px; border:2px dashed var(--border); border-radius:10px; padding:30px 20px;
+                 cursor:pointer; transition:border-color 0.15s; color:var(--text-dim);
+                 font-size:13px; text-align:center;"
+          onmouseover="this.style.borderColor='var(--blue-light)'"
+          onmouseout="this.style.borderColor=_aiSelectedFile?'var(--blue-light)':'var(--border)'">
+          <span style="font-size:32px;">📂</span>
+          <span>גרור קובץ לכאן או <strong style="color:var(--blue-light);">לחץ לבחירה</strong></span>
+          <span style="font-size:11px;">PDF · Excel · CSV · תמונה (PNG/JPG)</span>
+          <input id="aiFileInput" type="file" accept=".pdf,.xlsx,.xls,.csv,image/*"
+                 style="display:none" onchange="onAIFileSelect(this)">
+        </label>
+        <div id="aiSelectedFile"
+          style="display:none; margin-top:10px; padding:8px 12px;
+                 background:var(--surface2); border-radius:6px; font-size:12px; color:var(--text-dim);
+                 align-items:center; gap:8px; justify-content:space-between;">
+          <span id="aiSelectedFileName"></span>
+          <button onclick="clearAIFile()"
+            style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;line-height:1;">✕</button>
+        </div>
+      </div>
+
+      <!-- אזור טקסט -->
+      <div id="aiTextSection" style="display:none;">
+        <p style="color:var(--text-dim); font-size:13px; margin-bottom:12px;">
+          הדבק טקסט חופשי מחשבונית, רשימה, או כל מקור — Claude יחלץ את פריטי המלאי.
+        </p>
+        <textarea id="aiText"
+          style="width:100%; min-height:160px; background:var(--surface2); border:1px solid var(--border);
+                 color:var(--text); padding:10px; border-radius:7px; font-size:13px; resize:vertical; outline:none;"
+          placeholder="הדבק כאן טקסט של חשבונית / רשימת מלאי..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm btn-primary" onclick="submitAI()">🤖 חלץ מלאי</button>
+      <button class="btn-sm" style="background:var(--surface2);" onclick="closeModal('aiModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== סקריפטים ===== -->
+<script>
+// --- נתוני preview גלובליים ---
+let _previewItems = [];
+let _previewSource = "";
+let _previewFilename = "";
+
+// --- Toast ---
+function showToast(msg, type = "success") {
+  const t = document.getElementById("toast");
+  t.textContent = (type === "success" ? "✓ " : "✕ ") + msg;
+  t.className = "toast show " + type;
+  setTimeout(() => t.className = "toast", 3500);
+}
+
+// --- מודלים ---
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+function openAddModal() { openModal("addModal"); }
+let _aiMode = "file";
+let _aiSelectedFile = null;
+
+function openAIModal() {
+  _aiMode = "file";
+  _aiSelectedFile = null;
+  const fi = document.getElementById("aiFileInput");
+  if (fi) fi.value = "";
+  document.getElementById("aiSelectedFile").style.display = "none";
+  document.getElementById("aiDropZone").style.borderColor = "var(--border)";
+  document.getElementById("aiText").value = "";
+  switchAITab("file");
+  openModal("aiModal");
+}
+
+function switchAITab(mode) {
+  _aiMode = mode;
+  document.getElementById("aiFileSection").style.display = mode === "file" ? "" : "none";
+  document.getElementById("aiTextSection").style.display = mode === "text" ? "" : "none";
+  const tabFile = document.getElementById("aiTabFile");
+  const tabText = document.getElementById("aiTabText");
+  if (mode === "file") {
+    tabFile.style.borderBottomColor = "var(--blue-light)"; tabFile.style.color = "var(--blue-light)";
+    tabText.style.borderBottomColor = "transparent";       tabText.style.color = "var(--text-dim)";
+  } else {
+    tabText.style.borderBottomColor = "var(--blue-light)"; tabText.style.color = "var(--blue-light)";
+    tabFile.style.borderBottomColor = "transparent";       tabFile.style.color = "var(--text-dim)";
+  }
+}
+
+function onAIFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _aiSelectedFile = file;
+  document.getElementById("aiSelectedFileName").textContent =
+    `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+  document.getElementById("aiSelectedFile").style.display = "flex";
+  document.getElementById("aiDropZone").style.borderColor = "var(--blue-light)";
+}
+
+function clearAIFile() {
+  _aiSelectedFile = null;
+  document.getElementById("aiFileInput").value = "";
+  document.getElementById("aiSelectedFile").style.display = "none";
+  document.getElementById("aiDropZone").style.borderColor = "var(--border)";
+}
+
+// סגירת preview + ניקוי מצב — ללא שמירה (השרת לא שמר בשלב הupload)
+function cancelPreview() {
+  _previewItems = [];
+  _previewSource = "";
+  _previewFilename = "";
+  closeModal("previewModal");
+}
+
+// --- סינון טבלה ---
+function filterTable() {
+  const search  = document.getElementById("searchBox").value.toLowerCase();
+  const brand   = document.getElementById("filterBrand").value.toLowerCase();
+  const size    = document.getElementById("filterSize").value.toLowerCase();
+  const status  = document.getElementById("filterStatus").value;
+
+  const rows = document.querySelectorAll("#inventoryTable tbody tr");
+  let visible = 0;
+  rows.forEach(row => {
+    const text   = row.textContent.toLowerCase();
+    const rBrand  = row.dataset.brand  || "";
+    const rSize   = row.dataset.size   || "";
+    const rStatus = row.dataset.status || "";
+
+    const ok =
+      (!search || text.includes(search)) &&
+      (!brand  || rBrand.includes(brand)) &&
+      (!size   || rSize === size) &&
+      (!status || rStatus === status);
+
+    row.style.display = ok ? "" : "none";
+    if (ok) visible++;
+  });
+  document.getElementById("rowCount").textContent = visible + " פריטים";
+}
+
+// --- Inline edit ---
+function startEdit(cell) {
+  if (cell.querySelector("input")) return; // כבר בעריכה
+  const original = cell.innerText.trim().replace(/,/g, "");
+  const field = cell.dataset.field;
+  const input = document.createElement("input");
+  input.className = "edit-input";
+  input.value = original;
+  cell.innerHTML = "";
+  cell.appendChild(input);
+  input.focus();
+
+  input.addEventListener("blur", () => saveEdit(cell, field, input.value, original));
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") input.blur();
+    if (e.key === "Escape") { cell.textContent = original; }
+  });
+}
+
+async function saveEdit(cell, field, newVal, original) {
+  const row = cell.closest("tr");
+  const id  = row.dataset.id;
+  if (newVal === original) { cell.textContent = original; return; }
+
+  const body = { id: parseInt(id), [field]: newVal };
+  const res = await fetch("/inventory/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (data.ok) {
+    cell.textContent = newVal;
+    showToast("עודכן בהצלחה");
+    setTimeout(() => location.reload(), 1200);
+  } else {
+    cell.textContent = original;
+    showToast(data.error || "שגיאה", "error");
+  }
+}
+
+// --- מחיקה ---
+async function deleteItem(id) {
+  if (!confirm("למחוק פריט זה?")) return;
+  const res = await fetch(`/inventory/delete/${id}`, { method: "POST" });
+  const data = await res.json();
+  if (data.ok) {
+    showToast("פריט נמחק");
+    setTimeout(() => location.reload(), 900);
+  } else {
+    showToast(data.error || "שגיאה", "error");
+  }
+}
+
+// --- הוספה ידנית ---
+async function submitAdd() {
+  const body = {
+    brand:      document.getElementById("add_brand").value.trim(),
+    model:      document.getElementById("add_model").value.trim(),
+    size:       document.getElementById("add_size").value.trim(),
+    quantity:   parseInt(document.getElementById("add_quantity").value) || 0,
+    cost_price: parseFloat(document.getElementById("add_cost").value) || 0,
+    sell_price: parseFloat(document.getElementById("add_sell").value) || 0,
+    min_qty:    parseInt(document.getElementById("add_min").value) || 10,
+  };
+  if (!body.size) { showToast("מידה היא שדה חובה", "error"); return; }
+
+  const res = await fetch("/inventory/add", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (data.ok) {
+    showToast("פריט נוסף בהצלחה!");
+    closeModal("addModal");
+    setTimeout(() => location.reload(), 1000);
+  } else {
+    showToast(data.error || "שגיאה", "error");
+  }
+}
+
+// --- העלאת קובץ ---
+async function handleFileUpload(input, source) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = ""; // איפוס מיידי כדי שאפשר לבחור שוב אותו קובץ
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("use_ai", "true");  // fallback AI אוטומטי
+
+  showToast("מעבד קובץ...", "success");
+
+  try {
+    const res = await fetch(`/inventory/import/${source}`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+
+    // 422 = לא זוהו פריטים — הצג טקסט גולמי לדיבוג
+    if (res.status === 422) {
+      _previewItems   = [];
+      _previewSource  = source;
+      _previewFilename = file.name;
+      openPreviewModal(file.name + " — לא זוהו פריטים", {}, data.raw_text || "");
+      showToast("לא זוהו פריטים — בדוק טקסט גולמי למטה", "error");
+      return;
+    }
+
+    if (!data.ok) {
+      showToast(data.error || "שגיאה בעיבוד הקובץ", "error");
+      return;
+    }
+
+    _previewItems    = data.preview || [];
+    _previewSource   = source;
+    _previewFilename = file.name;
+    openPreviewModal(file.name, {}, data.raw_text || "");
+  } catch (err) {
+    showToast("שגיאת רשת: " + err.message, "error");
+  }
+}
+
+function openPreviewModal(filename, log, rawText = "") {
+  document.getElementById("previewTitle").textContent =
+    `תצוגה מקדימה — ${filename}`;
+  document.getElementById("previewInfo").innerHTML =
+    _previewItems.length
+      ? `זוהו <strong>${_previewItems.length}</strong> פריטים. בדוק ועדכן לפני אישור.`
+      : `<span style="color:var(--red);">לא זוהו פריטים. ניתן לשלוח לחילוץ AI.</span>`;
+
+  // טקסט גולמי לדיבוג
+  const rawDetails = document.getElementById("rawTextDetails");
+  const rawBox = document.getElementById("rawTextBox");
+  if (rawText) {
+    rawBox.textContent = rawText;
+    rawDetails.style.display = "";
+  } else {
+    rawDetails.style.display = "none";
+  }
+
+  const tbody = document.getElementById("previewBody");
+  tbody.innerHTML = "";
+  _previewItems.forEach((item, i) => {
+    const desc = (item.description || "").replace(/"/g, "&quot;");
+    tbody.innerHTML += `
+      <tr>
+        <td style="min-width:120px;"><input class="edit-input" style="width:100%; min-width:110px; box-sizing:border-box;" data-i="${i}" data-f="brand" value="${item.brand||''}"></td>
+        <td style="min-width:110px;"><input class="edit-input" style="width:100%; min-width:100px; box-sizing:border-box; font-family:monospace; font-size:12px;" data-i="${i}" data-f="model" value="${item.model||''}"></td>
+        <td style="min-width:130px;"><input class="edit-input" style="width:100%; min-width:120px; box-sizing:border-box;" data-i="${i}" data-f="tire_model" value="${item.tire_model||''}"></td>
+        <td style="min-width:140px;"><span style="font-size:11px; color:var(--text-dim); max-width:160px; display:inline-block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${desc}">${desc || '—'}</span></td>
+        <td style="min-width:110px;"><input class="edit-input" style="width:100%; min-width:100px; box-sizing:border-box;" data-i="${i}" data-f="size"  value="${item.size||''}"></td>
+        <td style="min-width:70px;"><input class="edit-input" style="width:100%; min-width:60px; box-sizing:border-box;" type="number" data-i="${i}" data-f="quantity"   value="${item.quantity||0}"></td>
+        <td style="min-width:90px;"><input class="edit-input" style="width:100%; min-width:80px; box-sizing:border-box;" type="number" data-i="${i}" data-f="cost_price" value="${item.cost_price||0}"></td>
+        <td style="min-width:90px;"><input class="edit-input" style="width:100%; min-width:80px; box-sizing:border-box;" type="number" data-i="${i}" data-f="sell_price" value="${item.sell_price||0}"></td>
+        <td style="min-width:60px;"><input class="edit-input" style="width:100%; min-width:50px; box-sizing:border-box;" type="number" data-i="${i}" data-f="min_qty"    value="${item.min_qty||10}"></td>
+        <td><button class="btn-sm" style="background:rgba(239,68,68,.15);color:#f87171;border:none;"
+            onclick="removePreviewRow(this, ${i})">✕</button></td>
+      </tr>`;
+  });
+
+  openModal("previewModal");
+}
+
+function removePreviewRow(btn, i) {
+  _previewItems[i] = null;
+  btn.closest("tr").remove();
+}
+
+async function confirmImport() {
+  // אסוף ערכים מהinputs של הpreview
+  const inputs = document.querySelectorAll("#previewBody input[data-f]");
+  inputs.forEach(inp => {
+    const i = parseInt(inp.dataset.i);
+    const f = inp.dataset.f;
+    if (_previewItems[i] !== null) {
+      const v = inp.value;
+      _previewItems[i][f] = (f === "brand" || f === "model" || f === "tire_model" || f === "size") ? v : parseFloat(v) || 0;
+    }
+  });
+
+  const filtered = _previewItems.filter(x => x !== null && x.size);
+  if (!filtered.length) { showToast("אין פריטים לשמירה", "error"); return; }
+
+  const res = await fetch("/inventory/import/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      items: filtered,
+      source: _previewSource,
+      filename: _previewFilename,
+    }),
+  });
+  const data = await res.json();
+  if (data.ok) {
+    showToast(`נשמרו ${data.log.items_added} חדשים, ${data.log.items_updated} עודכנו`);
+    closeModal("previewModal");
+    setTimeout(() => location.reload(), 1200);
+  } else {
+    showToast(data.error || "שגיאה", "error");
+  }
+}
+
+// --- AI Extract ---
+async function submitAI() {
+  if (_aiMode === "file") {
+    await _submitAIFile();
+  } else {
+    await _submitAIText();
+  }
+}
+
+async function _submitAIFile() {
+  if (!_aiSelectedFile) { showToast("בחר קובץ תחילה", "error"); return; }
+  showToast("שולח ל-Claude AI...", "success");
+  const formData = new FormData();
+  formData.append("file", _aiSelectedFile);
+  try {
+    const res = await fetch("/inventory/import/ai-file", { method: "POST", body: formData });
+    const data = await res.json();
+    closeModal("aiModal");
+    _previewSource   = "ai";
+    _previewFilename = _aiSelectedFile.name;
+    if (res.status === 422 || !data.ok) {
+      _previewItems = [];
+      openPreviewModal(_aiSelectedFile.name + " — לא זוהו פריטים", {}, data.raw_text || "");
+      showToast(data.error || "Claude לא זיהה פריטים — בדוק טקסט גולמי", "error");
+      return;
+    }
+    _previewItems = data.preview || [];
+    openPreviewModal(`חילוץ AI — ${_aiSelectedFile.name}`, {}, data.raw_text || "");
+  } catch (err) {
+    showToast("שגיאת רשת: " + err.message, "error");
+  }
+}
+
+async function _submitAIText() {
+  const text = document.getElementById("aiText").value.trim();
+  if (!text) { showToast("הכנס טקסט", "error"); return; }
+  showToast("שולח ל-AI...", "success");
+  const res = await fetch("/inventory/import/ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  const data = await res.json();
+  closeModal("aiModal");
+  if (!data.ok) { showToast(data.error || "שגיאה", "error"); return; }
+  _previewItems    = data.preview || [];
+  _previewSource   = "ai";
+  _previewFilename = "ai_extract";
+  openPreviewModal("חילוץ AI", {}, "");
+}
+
+// --- עריכת שורה ---
+function editRow(btn) {
+  const row = btn.closest("tr");
+
+  // שמור HTML מקורי לכל תא עריך
+  row.querySelectorAll(".editable-cell").forEach(cell => {
+    cell.dataset.originalHtml = cell.innerHTML;
+    const field = cell.dataset.field;
+    let val = cell.innerText.trim().replace(/,/g, "");
+    if (val === "—") val = "0";
+    const isNum = ["quantity", "cost_price", "sell_price", "min_qty"].includes(field);
+    cell.innerHTML = `<input class="edit-input"
+      style="width:100%; min-width:55px; box-sizing:border-box;"
+      ${isNum ? 'type="number"' : ''}
+      value="${val.replace(/"/g, '&quot;')}" data-field="${field}">`;
+  });
+
+  // החלף כפתורי פעולה
+  const actionCell = row.querySelector(".action-cell");
+  actionCell.dataset.originalHtml = actionCell.innerHTML;
+  actionCell.innerHTML = `
+    <button class="btn-sm" onclick="saveRow(this)"
+      style="background:rgba(34,197,94,.15);color:#4ade80;border:none;margin-left:4px;">✅</button>
+    <button class="btn-sm" onclick="cancelRow(this)"
+      style="background:var(--surface2);border:none;">❌</button>`;
+}
+
+async function saveRow(btn) {
+  const row = btn.closest("tr");
+  const id  = parseInt(row.dataset.id);
+  const body = { id };
+
+  row.querySelectorAll(".editable-cell input[data-field]").forEach(inp => {
+    const f = inp.dataset.field;
+    const v = inp.value;
+    body[f] = ["quantity", "cost_price", "sell_price", "min_qty"].includes(f)
+      ? parseFloat(v) || 0 : v;
+  });
+
+  const res  = await fetch("/inventory/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (data.ok) {
+    showToast("עודכן בהצלחה");
+    setTimeout(() => location.reload(), 900);
+  } else {
+    showToast(data.error || "שגיאה", "error");
+  }
+}
+
+function cancelRow(btn) {
+  const row = btn.closest("tr");
+  row.querySelectorAll(".editable-cell").forEach(cell => {
+    cell.innerHTML = cell.dataset.originalHtml || cell.innerHTML;
+  });
+  const actionCell = row.querySelector(".action-cell");
+  actionCell.innerHTML = actionCell.dataset.originalHtml || actionCell.innerHTML;
+}
+
+// --- ניקוי מלאי ---
+async function clearInventory() {
+  if (!confirm("האם למחוק את כל הפריטים הקיימים?")) return;
+  const res = await fetch("/inventory/clear", { method: "POST" });
+  const data = await res.json();
+  if (data.ok) {
+    showToast("המלאי נוקה. מוכן לייבוא נתונים אמיתיים");
+    setTimeout(() => location.reload(), 1500);
+  } else {
+    showToast(data.error || "שגיאה", "error");
+  }
+}
+
+// אתחול ספירת שורות
+document.addEventListener("DOMContentLoaded", () => {
+  const rows = document.querySelectorAll("#inventoryTable tbody tr").length;
+  document.getElementById("rowCount").textContent = rows + " פריטים";
+});
+</script>
+
+{% endblock %}
