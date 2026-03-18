@@ -3,7 +3,7 @@ services:
     name: tire-system-ai
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn dashboard.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    startCommand: "mkdir -p /opt/render/project/src/outputs/marketing && gunicorn dashboard.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120"
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false

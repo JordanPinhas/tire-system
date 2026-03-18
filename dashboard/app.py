@@ -95,10 +95,19 @@ def get_agent(name: str):
             return None
     return _agent_instances[name]
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+PERSISTENT_DIR = Path("/opt/render/project/src/persistent")
+if not PERSISTENT_DIR.exists():
+    PERSISTENT_DIR = Path(__file__).parent.parent
+
+DATA_DIR    = PERSISTENT_DIR / "data"
+OUTPUTS_DIR = PERSISTENT_DIR / "outputs" / "marketing"
+
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
 def ensure_data_files():
     """מוודא שכל קבצי הנתונים קיימים"""
+
     defaults = {
         "inventory.json":       "[]",
         "leads.json":           "[]",

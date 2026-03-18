@@ -11,7 +11,11 @@ from pathlib import Path
 from google import genai
 from google.genai import types
 
-MARKETING_DIR = Path(__file__).parent.parent / "outputs" / "marketing"
+PERSISTENT_DIR = Path("/opt/render/project/src/persistent")
+if not PERSISTENT_DIR.exists():
+    PERSISTENT_DIR = Path(__file__).parent.parent
+MARKETING_DIR = PERSISTENT_DIR / "outputs" / "marketing"
+MARKETING_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_client():
