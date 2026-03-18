@@ -10,7 +10,7 @@ import os
 import functools
 from datetime import date, datetime
 from pathlib import Path
-from flask import Flask, render_template, jsonify, request, redirect, url_for, send_file, session
+from flask import Flask, render_template, jsonify, request, redirect, url_for, send_file, send_from_directory, session
 
 # מאפשר ייבוא agents/ ו-skills/ מהספרייה האם
 ROOT_DIR = Path(__file__).parent.parent
@@ -1818,6 +1818,9 @@ def api_marketing_generate():
 
 @app.route("/api/marketing/gallery")
 def api_marketing_gallery():
+    print(f"[GALLERY] OUTPUTS_DIR = {OUTPUTS_DIR}")
+    print(f"[GALLERY] exists = {OUTPUTS_DIR.exists()}")
+    print(f"[GALLERY] files = {list(OUTPUTS_DIR.glob('*.png'))[:3]}")
     try:
         from skills.image_generator import get_gallery
         return jsonify(get_gallery())
@@ -1827,13 +1830,13 @@ def api_marketing_gallery():
 
 @app.route("/outputs/marketing/<path:filename>")
 def serve_marketing_image(filename):
-    from flask import send_from_directory as _sfd
-    import os as _os
-    marketing_dir = _os.path.join(
-        _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
-        "outputs", "marketing"
-    )
-    return _sfd(marketing_dir, _os.path.basename(filename))
+    return send_from_directory(str(OUTPUTS_DIR), filename)
+
+
+@app.route("/api/marketing/image/<filename>")
+def serve_marketing_image_new(filename):
+    from flask import send_from_directory
+    return send_from_directory(str(OUTPUTS_DIR), filename)
 
 
 @app.route("/api/marketing/delete/<filename>", methods=["POST"])

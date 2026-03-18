@@ -1355,7 +1355,7 @@ async function generate(cardId) {
       previewEl.classList.add('visible');
       showStatus(cardId, '🎨 מוכן — העתק את הפרומפט ופתח Canva', 'ok');
     } else if (data.success) {
-      const imgUrl    = `/outputs/marketing/${data.filename}`;
+      const imgUrl    = `/api/marketing/image/${data.filename}`;
       const previewEl = document.getElementById(`${cardId}-preview`);
       // שחזור מבנה מקורי אם הוחלף על-ידי Canva
       if (!document.getElementById(`${cardId}-img`)) {
@@ -1423,7 +1423,7 @@ async function loadGallery() {
 }
 
 function renderGalleryItem(item) {
-  const url = `/outputs/marketing/${item.filename}?t=${Date.now()}`;
+  const url = `/api/marketing/image/${item.filename}?t=${Date.now()}`;
   return `
     <div class="gallery-item">
       <img src="${url}" alt="${item.filename}" onclick="openLightbox('${url}')">
