@@ -110,7 +110,12 @@ class MarketingAgent(BaseAgent):
             image_path = None
 
         # שלב 4: שמור לתור אישורים
-        queue_file = Path(__file__).parent.parent / "data" / "campaigns_queue.json"
+        PERSISTENT_DIR = Path("/opt/render/project/src/persistent")
+        if not PERSISTENT_DIR.exists():
+            PERSISTENT_DIR = Path(__file__).parent.parent
+        queue_file = PERSISTENT_DIR / "data" / "campaigns_queue.json"
+        queue_file.parent.mkdir(parents=True, exist_ok=True)
+        print(f"[CAMPAIGN FILE] saving to: {queue_file}")
         try:
             queue = json.loads(queue_file.read_text(encoding="utf-8"))
         except Exception:
