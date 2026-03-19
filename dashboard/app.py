@@ -20,7 +20,6 @@ if str(ROOT_DIR) not in sys.path:
 app = Flask(__name__)
 
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin123")
-print(f"[DEBUG] DASHBOARD_PASSWORD from env: '{DASHBOARD_PASSWORD}'")
 SESSION_SECRET     = os.getenv("SESSION_SECRET", "change-me-in-production")
 API_KEY            = os.getenv("API_KEY", "")
 app.secret_key     = SESSION_SECRET
@@ -65,6 +64,7 @@ CHAT_AGENTS = {
     "סוכן תמחור":       ("agents.pricing_agent",      "PricingAgent",     "💰"),
     "סוכן תמיכה":       ("agents.support_agent",      "SupportAgent",     "💬"),
     "סוכן דוחות":       ("agents.reporting_agent",    "ReportingAgent",   "📊"),
+    "סוכן Rely":        ("agents.rely_agent",          "RelyAgent",        "🛡️"),
 }
 
 # סינגלטונים של סוכנים (נשמרים כל עוד השרת רץ)
@@ -99,11 +99,15 @@ PERSISTENT_DIR = Path("/opt/render/project/src/persistent")
 if not PERSISTENT_DIR.exists():
     PERSISTENT_DIR = Path(__file__).parent.parent
 
+print(f"[STARTUP] __file__ = {__file__}")
+print(f"[STARTUP] PERSISTENT_DIR = {PERSISTENT_DIR}")
+
 DATA_DIR    = PERSISTENT_DIR / "data"
 OUTPUTS_DIR = PERSISTENT_DIR / "outputs" / "marketing"
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
+print(f"[STARTUP] DATA_DIR = {DATA_DIR}")
 
 def ensure_data_files():
     """מוודא שכל קבצי הנתונים קיימים"""

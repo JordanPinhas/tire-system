@@ -4,6 +4,7 @@ ServiceAgent - סוכן שירות לעסק הצמיגים
 """
 
 import json
+import threading
 from datetime import datetime
 from pathlib import Path
 from agents.base_agent import BaseAgent
@@ -24,6 +25,7 @@ except ImportError:
     _skills_ok = False
 
 APPOINTMENTS_FILE = Path(__file__).parent.parent / "data" / "appointments.json"
+_appointments_lock = threading.Lock()
 
 SYSTEM_PROMPT_FALLBACK = """אתה סוכן שירות של חברת יבוא צמיגים בישראל.
 אתה מנהל תורים ומנתב לקוחות לנקודות שירות. דבר בנימוס ובמקצועיות, בעברית."""
@@ -89,12 +91,14 @@ class ServiceAgent(BaseAgent):
     # --- ניהול תורים ---
 
     def _load(self) -> list[dict]:
-        return json.loads(APPOINTMENTS_FILE.read_text(encoding="utf-8"))
+        with _appointments_lock:
+            return json.loads(APPOINTMENTS_FILE.read_text(encoding="utf-8"))
 
     def _save(self, appointments: list[dict]):
-        APPOINTMENTS_FILE.write_text(
-            json.dumps(appointments, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        with _appointments_lock:
+            APPOINTMENTS_FILE.write_text(
+                json.dumps(appointments, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
 
     def _next_id(self, appointments: list[dict]) -> int:
         return max((a["id"] for a in appointments), default=0) + 1

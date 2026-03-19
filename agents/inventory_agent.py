@@ -5,11 +5,13 @@ InventoryAgent - סוכן מלאי לעסק הצמיגים
 
 import json
 import re
+import threading
 from datetime import datetime
 from pathlib import Path
 from agents.base_agent import BaseAgent
 
 INVENTORY_FILE = Path(__file__).parent.parent / "data" / "inventory.json"
+_inventory_lock = threading.Lock()
 LOW_STOCK_THRESHOLD = 10
 
 SYSTEM_PROMPT_FALLBACK = """אתה סוכן מלאי של חברת יבוא צמיגים בישראל.
@@ -40,12 +42,14 @@ class InventoryAgent(BaseAgent):
     # --- CRUD מלאי ---
 
     def _load(self) -> list[dict]:
-        return json.loads(INVENTORY_FILE.read_text(encoding="utf-8"))
+        with _inventory_lock:
+            return json.loads(INVENTORY_FILE.read_text(encoding="utf-8"))
 
     def _save(self, inventory: list[dict]):
-        INVENTORY_FILE.write_text(
-            json.dumps(inventory, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        with _inventory_lock:
+            INVENTORY_FILE.write_text(
+                json.dumps(inventory, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
 
     def _next_id(self, inventory: list[dict]) -> int:
         return max((item["id"] for item in inventory), default=0) + 1

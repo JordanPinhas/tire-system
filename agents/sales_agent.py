@@ -4,6 +4,7 @@ SalesAgent - סוכן מכירות לעסק הצמיגים
 """
 
 import json
+import threading
 from datetime import datetime
 from pathlib import Path
 from agents.base_agent import BaseAgent
@@ -20,6 +21,7 @@ except ImportError:
     _skills_ok = False
 
 LEADS_FILE = Path(__file__).parent.parent / "data" / "leads.json"
+_leads_lock = threading.Lock()
 
 SYSTEM_PROMPT_FALLBACK = """אתה סוכן מכירות בכיר של חברת יבוא וסיטונאות צמיגים בישראל.
 אתה בונה הצעות מחיר, מנהל לידים ומייעץ על אסטרטגיית מכירה.
@@ -103,17 +105,19 @@ class SalesAgent(BaseAgent):
     # --- ניהול לידים ---
 
     def _load_leads(self) -> list[dict]:
-        return json.loads(LEADS_FILE.read_text(encoding="utf-8"))
+        with _leads_lock:
+            return json.loads(LEADS_FILE.read_text(encoding="utf-8"))
 
     def _save_leads(self, leads: list[dict]):
-        LEADS_FILE.write_text(json.dumps(leads, ensure_ascii=False, indent=2), encoding="utf-8")
+        with _leads_lock:
+            LEADS_FILE.write_text(json.dumps(leads, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def add_lead(self, name: str, phone: str, customer_type: str,
                  interest: str, notes: str = "") -> dict:
         """מוסיף ליד חדש ל-leads.json"""
         leads = self._load_leads()
         lead = {
-            "id": len(leads) + 1,
+            "id": max((l["id"] for l in leads), default=0) + 1,
             "name": name,
             "phone": phone,
             "customer_type": customer_type,

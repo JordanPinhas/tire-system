@@ -39,18 +39,22 @@ class BaseAgent(ABC):
         """שולח הודעה לסוכן ומקבל תשובה, עם אפשרות לשמירת היסטוריה"""
         if keep_history:
             self.history.append({"role": "user", "content": user_message})
+            if len(self.history) > 40:
+                self.history = self.history[-40:]
             messages = self.history
         else:
             messages = [{"role": "user", "content": user_message}]
 
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=2048,
-            system=self.system_prompt,
-            messages=messages,
-        )
-
-        reply = response.content[0].text
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=2048,
+                system=self.system_prompt,
+                messages=messages,
+            )
+            reply = response.content[0].text
+        except Exception as e:
+            reply = f"שגיאה בתקשורת עם הסוכן: {e}. אנא נסה שנית."
 
         if keep_history:
             self.history.append({"role": "assistant", "content": reply})
